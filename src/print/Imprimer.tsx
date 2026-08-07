@@ -77,13 +77,21 @@ export function Imprimer() {
         <button className="btn primaire" onClick={() => window.print()}>
           Imprimer / Exporter en PDF
         </button>
-        <div className="dest-seg outil-photos" role="group" aria-label="Photos">
-          {(['annexe', 'vignettes', 'les_deux'] as ModePhotos[]).map((m) => (
-            <button key={m} className="dest-opt" aria-pressed={mode === m} onClick={() => choisirMode(m)}>
-              {m === 'annexe' ? 'Annexe' : m === 'vignettes' ? 'Vignettes' : 'Les deux'}
-            </button>
-          ))}
-        </div>
+        {/* Le mode photos n'a pas d'effet en sortie (photos entrée/sortie en
+            regard, imposées) : on masque le sélecteur dans ce cas. */}
+        {estSortie ? (
+          <span className="meta" style={{ color: '#666', fontSize: '9pt' }}>
+            Photos : entrée / sortie en regard.
+          </span>
+        ) : (
+          <div className="dest-seg outil-photos" role="group" aria-label="Photos">
+            {(['annexe', 'vignettes', 'les_deux'] as ModePhotos[]).map((m) => (
+              <button key={m} className="dest-opt" aria-pressed={mode === m} onClick={() => choisirMode(m)}>
+                {m === 'annexe' ? 'Annexe' : m === 'vignettes' ? 'Vignettes' : 'Les deux'}
+              </button>
+            ))}
+          </div>
+        )}
         <span className="meta" style={{ color: '#666', fontSize: '9pt' }}>
           Depuis la PWA iOS : Partager → Imprimer.
         </span>
