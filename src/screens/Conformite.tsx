@@ -76,6 +76,9 @@ export function Conformite() {
     )
   }
 
+  // Tant qu'aucune ligne ne relève de l'inventaire, on n'affiche pas de verdict
+  // mobilier (afficher 11 « manquants » sur un constat vide n'a pas de sens).
+  const aucuneInventaire = lignesInventaire.length === 0
   const manquantsMobilier = resMobilier.filter((r) => !r.satisfait).length
   const manquantsMentions = resMentions.filter((r) => !r.satisfait).length
 
@@ -91,22 +94,31 @@ export function Conformite() {
           <h2 className="sous-titre" style={{ margin: 0 }}>
             Mobilier minimum
           </h2>
-          <span className={`badge-conf ${manquantsMobilier ? 'ko' : 'ok'}`}>
-            {manquantsMobilier ? `${manquantsMobilier} manquant${manquantsMobilier > 1 ? 's' : ''}` : 'Complet'}
-          </span>
+          {!aucuneInventaire && (
+            <span className={`badge-conf ${manquantsMobilier ? 'ko' : 'ok'}`}>
+              {manquantsMobilier ? `${manquantsMobilier} manquant${manquantsMobilier > 1 ? 's' : ''}` : 'Complet'}
+            </span>
+          )}
         </div>
         <p className="meta" style={{ marginTop: 0 }}>
           Décret n° 2015-981 du 31 juillet 2015.
         </p>
 
-        {resMobilier.map((r) => (
-          <ItemMobilierVue
-            key={r.item.id}
-            resultat={r}
-            onDetacher={(ligneId, auto) => detacherLigne(constatId, r.item.id, ligneId, auto)}
-            onRattacher={() => setRattacherItem(r.item.id)}
-          />
-        ))}
+        {aucuneInventaire ? (
+          <p className="vide">
+            Aucune ligne destinée à l'inventaire pour l'instant. Ajoutez des lignes de mobilier pour
+            évaluer le mobilier minimum.
+          </p>
+        ) : (
+          resMobilier.map((r) => (
+            <ItemMobilierVue
+              key={r.item.id}
+              resultat={r}
+              onDetacher={(ligneId, auto) => detacherLigne(constatId, r.item.id, ligneId, auto)}
+              onRattacher={() => setRattacherItem(r.item.id)}
+            />
+          ))
+        )}
 
         <div className="entre" style={{ marginTop: 24 }}>
           <h2 className="sous-titre" style={{ margin: 0 }}>
