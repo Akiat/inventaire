@@ -33,7 +33,7 @@ export function Imprimer() {
       </div>
     )
 
-  const { constat, logement, pieces, compteurs, annexe, nbPhotos } = data
+  const { constat, logement, pieces, compteurs, annexe, nbPhotos, mobilier, avertissements } = data
   const titre = constat.type === 'entree' ? "Constat d'état des lieux d'entrée" : "Constat d'état des lieux de sortie"
   const locataires = constat.locataires.filter((l) => l.trim())
 
@@ -50,6 +50,13 @@ export function Imprimer() {
           Depuis la PWA iOS : bouton Partager → Imprimer.
         </span>
       </div>
+
+      {/* Bandeau d'avertissement de conformité, tant qu'un point manque. */}
+      {avertissements.length > 0 && (
+        <div className="avert">
+          <strong>Points de conformité à vérifier :</strong> {avertissements.join(' · ')}.
+        </div>
+      )}
 
       {/* En-tête du document */}
       <div className="doc-entete">
@@ -164,6 +171,32 @@ export function Imprimer() {
           )}
         </section>
       ))}
+
+      {/* Mobilier obligatoire (meublé) : catégories et lignes rattachées. */}
+      <section>
+        <h2>Mobilier obligatoire (meublé)</h2>
+        <p className="meta" style={{ fontSize: '9pt', color: '#444', margin: '0 0 6px' }}>
+          Décret n° 2015-981 du 31 juillet 2015.
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th style={{ width: '32%' }}>Catégorie</th>
+              <th style={{ width: '14%' }}>Présent</th>
+              <th>Ligne(s) correspondante(s)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {mobilier.map((m) => (
+              <tr key={m.libelle}>
+                <td>{m.libelle}</td>
+                <td>{m.satisfait ? 'Oui' : 'Manquant'}</td>
+                <td>{m.refs.join(' ; ') || '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
 
       {/* Signatures */}
       <div className="signatures">

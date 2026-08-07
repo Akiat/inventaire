@@ -51,6 +51,13 @@ export interface Logement {
   bailleurAdresse: string
 }
 
+// Surcharge manuelle du rattachement d'un item de mobilier obligatoire :
+// lignes ajoutées ou retirées à la main par rapport au rattachement auto.
+export interface SurchargeMobilier {
+  inclus?: string[] // ids de lignes rattachées manuellement
+  exclus?: string[] // ids de lignes auto-rattachées mais écartées
+}
+
 export interface Constat {
   id: string
   logementId: string
@@ -61,6 +68,8 @@ export interface Constat {
   compteurs: Compteur[]
   cles: Cle[]
   createdAt: number
+  // Ajouté au lot 1. Absent sur les constats créés au lot 0 (traité comme {}).
+  conformite?: Record<string, SurchargeMobilier>
 }
 
 export interface Piece {

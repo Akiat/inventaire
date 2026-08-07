@@ -142,3 +142,44 @@ export async function majLigne(ligneId: string, patch: Partial<Ligne>): Promise<
 export function etatLibelle(etat: Etat): string {
   return { neuf: 'Neuf', bon: 'Bon', usage: 'Usage', mauvais: 'Mauvais', absent: 'Absent' }[etat]
 }
+
+// --- Conformité (lot 1) : surcharge manuelle du rattachement mobilier ---
+
+async function majSurcharge(
+  constatId: string,
+  itemId: string,
+  transformer: (s: { inclus: string[]; exclus: string[] }) => void
+): Promise<void> {
+  await db.transaction('rw', db.constats, async () => {
+    const constat = await db.constats.get(constatId)
+    if (!constat) return
+    const conformite = { ...(constat.conformite ?? {}) }
+    const courant = conformite[itemId] ?? {}
+    const etat = { inclus: [...(courant.inclus ?? [])], exclus: [...(courant.exclus ?? [])] }
+    transformer(etat)
+    conformite[itemId] = { inclus: etat.inclus, exclus: etat.exclus }
+    await db.constats.update(constatId, { conformite })
+  })
+}
+
+// Rattache une ligne à un item : forcée présente, annule une exclusion.
+export async function rattacherLigne(constatId: string, itemId: string, ligneId: string): Promise<void> {
+  await majSurcharge(constatId, itemId, (s) => {
+    s.exclus = s.exclus.filter((id) => id !== ligneId)
+    if (!s.inclus.includes(ligneId)) s.inclus.push(ligneId)
+  })
+}
+
+// Détache une ligne d'un item. Si elle y était par mot-clé (auto), on l'exclut ;
+// si elle avait été ajoutée à la main, on retire l'inclusion.
+export async function detacherLigne(
+  constatId: string,
+  itemId: string,
+  ligneId: string,
+  auto: boolean
+): Promise<void> {
+  await majSurcharge(constatId, itemId, (s) => {
+    s.inclus = s.inclus.filter((id) => id !== ligneId)
+    if (auto && !s.exclus.includes(ligneId)) s.exclus.push(ligneId)
+  })
+}

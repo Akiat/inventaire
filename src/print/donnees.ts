@@ -1,6 +1,7 @@
 // Chargement et mise en forme des données d'un constat pour l'impression.
 import { db } from '../data/db'
 import type { Constat, Ligne, Logement, Photo, Piece } from '../data/types'
+import { evaluerMentions, evaluerMobilier, type LignePiece } from '../data/conformite'
 
 export interface PhotoNumerotee {
   photo: Photo
@@ -18,6 +19,12 @@ export interface PieceImpression {
   lignes: LigneImpression[]
 }
 
+export interface MobilierImpression {
+  libelle: string
+  satisfait: boolean
+  refs: string[] // « Pièce — Désignation » des lignes qui satisfont
+}
+
 export interface DonneesImpression {
   constat: Constat
   logement: Logement | undefined
@@ -25,6 +32,8 @@ export interface DonneesImpression {
   compteurs: { type: string; numero: string; index: string; ref?: string }[]
   annexe: PhotoNumerotee[]
   nbPhotos: number
+  mobilier: MobilierImpression[]
+  avertissements: string[] // points manquants (mobilier + mentions), bandeau
 }
 
 function formaterDate(iso: string): string {
@@ -99,6 +108,26 @@ export async function chargerImpression(constatId: string): Promise<DonneesImpre
     return { type: c.type, numero: c.numero, index: c.index, ref }
   })
 
+  // Conformité (lot 1) : rattachement mobilier + points manquants pour le bandeau.
+  const lignesPiece: LignePiece[] = piecesImpr.flatMap(({ piece, lignes }) =>
+    lignes.map(({ ligne }) => ({ ligne, piece }))
+  )
+  const nbParPiece = new Map<string, number>()
+  for (const { piece } of lignesPiece) nbParPiece.set(piece.id, (nbParPiece.get(piece.id) ?? 0) + 1)
+
+  const resMobilier = evaluerMobilier(lignesPiece, constat.conformite)
+  const mobilier: MobilierImpression[] = resMobilier.map((r) => ({
+    libelle: r.item.libelle,
+    satisfait: r.satisfait,
+    refs: r.lignes.map(({ piece, ligne }) => `${piece.nom} — ${ligne.designation}`),
+  }))
+
+  const resMentions = evaluerMentions(constat, logement, pieces, nbParPiece)
+  const avertissements = [
+    ...resMobilier.filter((r) => !r.satisfait).map((r) => r.item.libelle),
+    ...resMentions.filter((r) => !r.satisfait).map((r) => r.libelle),
+  ]
+
   return {
     constat,
     logement,
@@ -106,6 +135,8 @@ export async function chargerImpression(constatId: string): Promise<DonneesImpre
     compteurs,
     annexe,
     nbPhotos: annexe.length,
+    mobilier,
+    avertissements,
   }
 }
 

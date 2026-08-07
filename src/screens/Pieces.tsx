@@ -59,6 +59,11 @@ export function Pieces() {
             {commencees}/{total} pièces
           </span>
         </div>
+        <div className="entre" style={{ marginTop: 6 }}>
+          <Link className="lien" to={`/constat/${constatId}/conformite`}>
+            ✓ Conformité
+          </Link>
+        </div>
         <div className="avancement" aria-label={`Avancement ${pct}%`}>
           <span style={{ width: `${pct}%` }} />
         </div>
