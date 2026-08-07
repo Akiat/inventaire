@@ -286,7 +286,7 @@ export async function majLigne(ligneId: string, patch: Partial<Ligne>): Promise<
 }
 
 export function etatLibelle(etat: Etat): string {
-  return { neuf: 'Neuf', bon: 'Bon', usage: 'Usage', mauvais: 'Mauvais', absent: 'Absent' }[etat]
+  return { neuf: 'Parfait', bon: 'Bon', usage: 'Usage', mauvais: 'Mauvais', absent: 'Absent' }[etat]
 }
 
 // --- Modèles de constat (lot 2) ---

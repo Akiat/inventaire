@@ -1,7 +1,9 @@
 import type { Etat } from '../data/types'
 
+// La valeur interne reste 'neuf' (couleur --neuf, historique des données) ;
+// seul le libellé affiché devient « Parfait ». Aucune migration nécessaire.
 const ETATS: { etat: Etat; libelle: string }[] = [
-  { etat: 'neuf', libelle: 'Neuf' },
+  { etat: 'neuf', libelle: 'Parfait' },
   { etat: 'bon', libelle: 'Bon' },
   { etat: 'usage', libelle: 'Usage' },
   { etat: 'mauvais', libelle: 'Mauvais' },
