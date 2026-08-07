@@ -7,8 +7,15 @@ import { useBlobUrl } from '../lib/hooks'
 import { chargerImpression, formaterDate, type DocType, type DonneesImpression } from './donnees'
 import './print.css'
 
-type ModePhotos = 'annexe' | 'vignettes' | 'sans'
+// annexe = références + annexe en fin ; vignettes = miniatures dans les tableaux ;
+// les_deux = miniatures dans les tableaux ET annexe en fin.
+type ModePhotos = 'annexe' | 'vignettes' | 'les_deux'
 const CLE_MODE = 'inventaire.modePhotos'
+
+function lireMode(): ModePhotos {
+  const v = localStorage.getItem(CLE_MODE)
+  return v === 'vignettes' || v === 'les_deux' || v === 'annexe' ? v : 'annexe'
+}
 
 function PhotoImg({ photo }: { photo: Photo }) {
   const url = useBlobUrl(photo.blob)
@@ -24,9 +31,7 @@ export function Imprimer() {
   const { constatId = '', doc = 'edl' } = useParams()
   const typeDoc: DocType = doc === 'inventaire' ? 'inventaire' : 'edl'
   const [data, setData] = useState<DonneesImpression | null | undefined>(undefined)
-  const [mode, setMode] = useState<ModePhotos>(
-    () => (localStorage.getItem(CLE_MODE) as ModePhotos) || 'annexe'
-  )
+  const [mode, setMode] = useState<ModePhotos>(lireMode)
 
   useEffect(() => {
     let vivant = true
@@ -60,7 +65,8 @@ export function Imprimer() {
     ? `Constat d'état des lieux ${typeLabel}`
     : `Inventaire et état du mobilier ${typeLabel}`
   const locataires = constat.locataires.filter((l) => l.trim())
-  const colPhotos = mode !== 'sans'
+  const vignettes = mode === 'vignettes' || mode === 'les_deux'
+  const avecAnnexe = mode === 'annexe' || mode === 'les_deux'
 
   return (
     <div className={`impr mode-${mode}`}>
@@ -72,9 +78,9 @@ export function Imprimer() {
           Imprimer / Exporter en PDF
         </button>
         <div className="dest-seg outil-photos" role="group" aria-label="Photos">
-          {(['annexe', 'vignettes', 'sans'] as ModePhotos[]).map((m) => (
+          {(['annexe', 'vignettes', 'les_deux'] as ModePhotos[]).map((m) => (
             <button key={m} className="dest-opt" aria-pressed={mode === m} onClick={() => choisirMode(m)}>
-              {m === 'annexe' ? 'Annexe' : m === 'vignettes' ? 'Vignettes' : 'Sans photo'}
+              {m === 'annexe' ? 'Annexe' : m === 'vignettes' ? 'Vignettes' : 'Les deux'}
             </button>
           ))}
         </div>
@@ -147,13 +153,13 @@ export function Imprimer() {
       {estEdl && compteurs.length > 0 && (
         <>
           <h2>Relevés des compteurs</h2>
-          <table>
+          <div className="table-wrap"><table>
             <thead>
               <tr>
                 <th>Type</th>
                 <th>N° compteur</th>
                 <th>Index</th>
-                {mode === 'annexe' && <th>Photo</th>}
+                {avecAnnexe && <th>Photo</th>}
               </tr>
             </thead>
             <tbody>
@@ -162,18 +168,18 @@ export function Imprimer() {
                   <td>{c.type || '—'}</td>
                   <td className="tnum">{c.numero || '—'}</td>
                   <td className="tnum">{c.index || '—'}</td>
-                  {mode === 'annexe' && <td className="refs">{c.ref ?? ''}</td>}
+                  {avecAnnexe && <td className="refs">{c.ref ?? ''}</td>}
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </>
       )}
 
       {estEdl && cles.length > 0 && (
         <>
           <h2>Clés et moyens d'accès</h2>
-          <table>
+          <div className="table-wrap"><table>
             <thead>
               <tr>
                 <th>Libellé</th>
@@ -188,7 +194,7 @@ export function Imprimer() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </>
       )}
 
@@ -199,7 +205,7 @@ export function Imprimer() {
       {pieces.map(({ piece, lignes }) => (
         <section key={piece.id}>
           <h2>{piece.nom}</h2>
-          <table>
+          <div className="table-wrap"><table>
             <thead>
               <tr>
                 <th style={{ width: '26%' }}>Désignation</th>
@@ -213,7 +219,7 @@ export function Imprimer() {
                   <th style={{ width: '14%' }}>État</th>
                 )}
                 <th>Observations</th>
-                {colPhotos && <th style={{ width: estSortie ? '24%' : mode === 'vignettes' ? '22%' : '14%' }}>Photos</th>}
+                <th style={{ width: estSortie ? '24%' : vignettes ? '22%' : '14%' }}>Photos</th>
               </tr>
             </thead>
             <tbody>
@@ -230,10 +236,9 @@ export function Imprimer() {
                     <td className="etat">{etatLibelle(ligne.etat)}</td>
                   )}
                   <td>{ligne.observations || ''}</td>
-                  {colPhotos &&
-                    (estSortie ? (
-                      // Photos d'entrée et de sortie en regard.
-                      <td className="refs">
+                  {estSortie ? (
+                    // Photos d'entrée et de sortie en regard.
+                    <td className="refs">
                         <div className="compare-photos">
                           <div>
                             <span className="lab">Entrée</span>
@@ -255,23 +260,23 @@ export function Imprimer() {
                           </div>
                         </div>
                       </td>
-                    ) : (
-                      <td className="refs">
-                        {mode === 'vignettes' ? (
-                          <div className="cellule-vignettes">
-                            {photos.map((p) => (
-                              <MiniPhoto key={p.id} photo={p} />
-                            ))}
-                          </div>
-                        ) : (
-                          refsPhotos.join(', ')
-                        )}
-                      </td>
-                    ))}
+                  ) : (
+                    <td className="refs">
+                      {vignettes ? (
+                        <div className="cellule-vignettes">
+                          {photos.map((p) => (
+                            <MiniPhoto key={p.id} photo={p} />
+                          ))}
+                        </div>
+                      ) : (
+                        refsPhotos.join(', ')
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </section>
       ))}
 
@@ -282,7 +287,7 @@ export function Imprimer() {
           <p className="meta" style={{ fontSize: '9pt', color: '#444', margin: '0 0 6px' }}>
             Décret n° 2015-981 du 31 juillet 2015.
           </p>
-          <table>
+          <div className="table-wrap"><table>
             <thead>
               <tr>
                 <th style={{ width: '32%' }}>Catégorie</th>
@@ -299,7 +304,7 @@ export function Imprimer() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </section>
       )}
 
@@ -307,7 +312,7 @@ export function Imprimer() {
       {!estEdl && valeurs.length > 0 && (
         <section>
           <h2>Valeurs indicatives</h2>
-          <table>
+          <div className="table-wrap"><table>
             <thead>
               <tr>
                 <th>Pièce</th>
@@ -330,7 +335,7 @@ export function Imprimer() {
                 </td>
               </tr>
             </tbody>
-          </table>
+          </table></div>
           <p className="meta" style={{ fontSize: '9pt', color: '#444', margin: 0 }}>
             Estimations indicatives, hors valeur d'usage réelle.
           </p>
@@ -344,12 +349,12 @@ export function Imprimer() {
       </div>
       <p className="meta" style={{ fontSize: '9pt', color: '#444', marginTop: 8 }}>
         Document non signé, à faire signer via l'outil de signature électronique.
-        {!estSortie && mode !== 'sans' && nbPhotos > 0 ? ` ${nbPhotos} photo(s) annexée(s).` : ''}
+        {!estSortie && avecAnnexe && nbPhotos > 0 ? ` ${nbPhotos} photo(s) annexée(s).` : ''}
         {estSortie ? " Les lignes modifiées par rapport à l'entrée sont surlignées." : ''}
       </p>
 
-      {/* Annexe photos : mode annexe, hors sortie (comparaison en ligne). */}
-      {mode === 'annexe' && !estSortie && annexe.length > 0 && (
+      {/* Annexe photos : modes annexe et « les deux », hors sortie (comparaison en ligne). */}
+      {avecAnnexe && !estSortie && annexe.length > 0 && (
         <section className="annexe">
           <h2>Annexe photographique</h2>
           <div className="annexe-grille">

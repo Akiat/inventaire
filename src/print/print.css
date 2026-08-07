@@ -14,12 +14,18 @@
   position: sticky;
   top: 0;
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   align-items: center;
   padding: 10px 0;
   background: #fff;
   border-bottom: 1px solid #ccc;
   margin-bottom: 16px;
+}
+
+/* Conteneur scrollable pour les tableaux (évite le débordement sur mobile). */
+.impr .table-wrap {
+  overflow-x: auto;
 }
 
 .impr h1 {
@@ -231,6 +237,24 @@
   .impr {
     box-shadow: 0 0 0 1px #ddd;
     margin: 16px auto;
+  }
+}
+
+/* Mobile : l'aperçu tient dans l'écran, les tableaux défilent horizontalement. */
+@media screen and (max-width: 820px) {
+  .impr {
+    max-width: 100%;
+    padding: 12px;
+    margin: 0;
+    box-shadow: none;
+  }
+
+  .impr .outil-photos {
+    width: 100%;
+  }
+
+  .impr .table-wrap table {
+    min-width: 560px;
   }
 }
 
