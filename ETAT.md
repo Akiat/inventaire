@@ -54,6 +54,22 @@ du mobilier. Chaque `Ligne` porte `destination: 'edl' | 'inventaire' | 'les_deux
 | 'aucun'`, initialisée depuis `destinationParDefaut` du catalogue (pas depuis la
 catégorie), surchargeable. Détail dans `PLAN.md` (section « ÉVOLUTION »).
 
+### Évolutions récentes (post-lots, validées iPhone)
+
+- **Photos de pièce** : photo d'ensemble d'une pièce (non liée à une ligne), via
+  `Photo.pieceId` déjà prévu au schéma. Destination **par pièce**
+  (`Piece.photosDestination`, défaut `'edl'`). À l'impression : numérotation
+  globale et stable, rendu sous le titre de section (références en mode annexe,
+  vignettes sinon) et dans l'annexe, filtré selon la destination de la pièce.
+- **Mise à jour automatique de la PWA** : `sw.js` versionné au build
+  (`scripts/stamp-sw.mjs` injecte le SHA du commit dans le nom du cache, donc les
+  octets changent à chaque déploiement) ; `main.tsx` appelle `registration.update()`
+  au lancement et à chaque retour au premier plan, et recharge une fois quand le
+  nouveau service worker prend la main.
+- **État « Neuf » → « Parfait »** : simple renommage du libellé. La valeur interne
+  reste `'neuf'` (couleur `--neuf`, historique des données), donc **aucune
+  migration**.
+
 ## Architecture (src/)
 
 - `data/types.ts` — types du domaine (Logement, Constat, Piece, Ligne, Photo,
@@ -67,8 +83,9 @@ catégorie), surchargeable. Détail dans `PLAN.md` (section « ÉVOLUTION »).
 - `data/conformite.ts` — définitions réglementaires + `evaluerMobilier`,
   `evaluerMentions` (fonctions **pures**, testées).
 - `data/actions.ts` — toutes les écritures Dexie (création, duplication,
-  réordonnancement, clonage sortie, conformité, modèles). Les lectures+écritures
-  d'`ordre` passent par des transactions (anti-course sur ajout en rafale).
+  réordonnancement, clonage sortie, conformité, modèles, photos de ligne / pièce
+  / compteur). Les lectures+écritures d'`ordre` passent par des transactions
+  (anti-course sur ajout en rafale). `etatLibelle` y traduit les états.
 - `lib/` — `images.ts` (redim 1600px/JPEG 0.8, gestion HEIC), `backup.ts`
   (ZIP + JSON), `zip.ts` (ZIP maison), `storage.ts` (persist + estimate),
   `valeur.ts`, `hooks.ts` (useBlobUrl, debounce), `catalogueLocal.ts`.
@@ -93,6 +110,14 @@ catégorie), surchargeable. Détail dans `PLAN.md` (section « ÉVOLUTION »).
   l'inventaire. État vide propre quand aucune ligne inventaire.
 - **Clonage sortie** : `etatEntree` figé, `ligneEntreeId` pour retrouver les
   photos d'entrée, `verifiee` pour le suivi. Photos d'entrée non recopiées.
+- **Photos de pièce** : destination portée **par la pièce** (`photosDestination`),
+  pas par photo — une seule décision pour toutes les photos d'ambiance. Non
+  recopiées à la duplication d'une pièce (comme les photos de ligne).
+- **État « Parfait »** : renommage de libellé seulement, valeur interne `'neuf'`
+  inchangée → pas de migration, historique préservé, couleur `--neuf` conservée.
+- **PWA auto-update** : `sw.js` doit changer d'octets à chaque déploiement pour
+  que le navigateur détecte la mise à jour → version tamponnée au build
+  (`scripts/stamp-sw.mjs`, hors `src/`, `.mjs` pour éviter `@types/node`).
 
 ## Reste à faire (si on veut clore le LOT 5 complet)
 
@@ -113,9 +138,14 @@ catégorie), surchargeable. Détail dans `PLAN.md` (section « ÉVOLUTION »).
   (WebSocket `ws://localhost:undefined`), le bundle peut être **périmé** et
   donner « No routes matched » / page blanche. Pour tester fidèlement, viser le
   **site déployé** plutôt que le dev server, ou redémarrer le serveur.
-- **Service worker** : après un déploiement, il faut parfois **deux ouvertures**
-  pour que la nouvelle version soit servie (navigation network-first, mais le SW
-  s'active au chargement suivant). Un `registration.update()` + reload accélère.
+- **Service worker** : la mise à jour est désormais **automatique** (update au
+  premier plan + rechargement au changement de contrôleur). MAIS le déploiement
+  qui a *introduit* ce mécanisme reste servi par l'ancien SW qui l'ignore : ce
+  passage-là exige encore un **force-quit** manuel de la PWA (une seule fois).
+  Sur iOS, **supprimer/réajouter l'icône n'efface pas** les données de site (SW,
+  caches, IndexedDB liés à l'origine) — ce n'est donc pas un reset. Reset fiable
+  mais destructif : Réglages → Safari → Avancé → Données de sites (exporter le
+  ZIP avant).
 - **Persistance iOS** : `storage.persist()` n'est accordé que sous conditions
   (PWA installée sur l'écran d'accueil, engagement). Le bouton « Protéger le
   stockage » peut renvoyer « non » sur un simple onglet — normal.
