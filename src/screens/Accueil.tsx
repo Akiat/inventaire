@@ -89,7 +89,7 @@ export function Accueil() {
           <input
             ref={inputImport}
             type="file"
-            accept="application/json,.json"
+            accept=".zip,application/zip,application/json,.json"
             hidden
             onChange={(e) => surImport(e.target.files?.[0])}
           />
