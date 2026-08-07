@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../data/db'
-import { basculerDestinationPiece, creerLigne, dupliquerPiece, supprimerPiece } from '../data/actions'
+import { ajouterPhotoPiece, basculerDestinationPiece, creerLigne, dupliquerPiece, supprimerPhoto, supprimerPiece } from '../data/actions'
 import type { Categorie, Destination } from '../data/types'
 import { BarreTitre } from '../components/BarreTitre'
+import { ChampPhoto } from '../components/ChampPhoto'
+import { SelecteurDestination } from '../components/SelecteurDestination'
 import { FeuilleAjout } from '../components/FeuilleAjout'
 import { LigneItem } from '../components/LigneItem'
 import { enrichir } from '../lib/catalogueLocal'
@@ -32,6 +34,10 @@ export function Piece() {
   const sortie = constat?.type === 'sortie'
   const lignes = useLiveQuery(
     () => db.lignes.where('pieceId').equals(pieceId).sortBy('ordre'),
+    [pieceId]
+  )
+  const photos = useLiveQuery(
+    () => db.photos.where('pieceId').equals(pieceId).sortBy('createdAt'),
     [pieceId]
   )
 
@@ -123,6 +129,33 @@ export function Piece() {
           <button className="btn" onClick={() => setBascule(true)}>
             ⇄ Tout basculer
           </button>
+        </div>
+
+        {/* Photos d'ensemble de la pièce (vue générale, non liée à une ligne). */}
+        <div className="bloc-photos-piece">
+          <div className="entre" style={{ marginBottom: 8 }}>
+            <h2 className="sous-titre" style={{ margin: 0 }}>
+              Photos de la pièce {photos && photos.length > 0 ? `(${photos.length})` : ''}
+            </h2>
+          </div>
+          <ChampPhoto
+            photos={photos ?? []}
+            onAjouter={async (blob) => {
+              await ajouterPhotoPiece(blob, pieceId)
+            }}
+            onSupprimer={(id) => supprimerPhoto(id)}
+          />
+          {photos && photos.length > 0 && (
+            <div style={{ marginTop: 10 }}>
+              <span className="lib" style={{ display: 'block', marginBottom: 6 }}>
+                Ces photos figurent dans…
+              </span>
+              <SelecteurDestination
+                valeur={piece.photosDestination ?? 'edl'}
+                onChange={(d) => db.pieces.update(pieceId, { photosDestination: d })}
+              />
+            </div>
+          )}
         </div>
 
         <div className="entre">

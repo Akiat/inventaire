@@ -249,6 +249,7 @@ export async function supprimerConstat(constatId: string): Promise<void> {
     const ligneIds = lignes.map((l) => l.id)
 
     if (ligneIds.length) await db.photos.where('ligneId').anyOf(ligneIds).delete()
+    if (pieceIds.length) await db.photos.where('pieceId').anyOf(pieceIds).delete()
     await db.photos.where('constatId').equals(constatId).delete()
     if (ligneIds.length) await db.lignes.where('id').anyOf(ligneIds).delete()
     if (pieceIds.length) await db.pieces.where('id').anyOf(pieceIds).delete()
@@ -265,6 +266,13 @@ export async function ajouterPhoto(blob: Blob, ligneId: string): Promise<string>
 
 export async function ajouterPhotoCompteur(blob: Blob, constatId: string): Promise<string> {
   const photo: Photo = { id: uid(), constatId, blob, createdAt: Date.now() }
+  await db.photos.add(photo)
+  return photo.id
+}
+
+// Photo d'ensemble d'une pièce (vue générale, non liée à une ligne).
+export async function ajouterPhotoPiece(blob: Blob, pieceId: string): Promise<string> {
+  const photo: Photo = { id: uid(), pieceId, blob, createdAt: Date.now() }
   await db.photos.add(photo)
   return photo.id
 }

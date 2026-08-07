@@ -30,6 +30,8 @@ export interface LigneImpression {
 export interface PieceImpression {
   piece: Piece
   lignes: LigneImpression[]
+  photosPiece: Photo[] // vue d'ensemble de la pièce (mode vignettes)
+  refsPhotosPiece: string[] // références de ces photos (mode annexe)
 }
 
 export interface MobilierImpression {
@@ -71,11 +73,18 @@ function ref(n: number): string {
 // Entrée d'annexe globale, avec de quoi filtrer par document.
 interface AnnexeGlobale extends PhotoNumerotee {
   ligneId?: string // photo de ligne
+  pieceId?: string // photo d'ensemble de pièce
   estCompteur: boolean
 }
 
 function retientPourDoc(doc: DocType, l: Ligne): boolean {
   const d = destinationDe(l)
+  return doc === 'edl' ? inclutEdl(d) : inclutInventaire(d)
+}
+
+// Les photos d'ensemble d'une pièce suivent leur propre destination (défaut 'edl').
+function retientPhotosPiece(doc: DocType, piece: Piece): boolean {
+  const d = piece.photosDestination ?? 'edl'
   return doc === 'edl' ? inclutEdl(d) : inclutInventaire(d)
 }
 
@@ -90,6 +99,8 @@ export async function chargerImpression(constatId: string, doc: DocType): Promis
   const annexeGlobale: AnnexeGlobale[] = []
   const refsParLigne = new Map<string, string[]>()
   const photosParLigne = new Map<string, Photo[]>()
+  const refsParPiece = new Map<string, string[]>()
+  const photosParPiece = new Map<string, Photo[]>()
   const lignesParPiece = new Map<string, Ligne[]>()
 
   for (const piece of pieces) {
@@ -115,6 +126,25 @@ export async function chargerImpression(constatId: string, doc: DocType): Promis
       refsParLigne.set(ligne.id, refs)
       photosParLigne.set(ligne.id, photos)
     }
+    // Photos d'ensemble de la pièce, numérotées à la suite de ses lignes.
+    const photosPiece = (await db.photos.where('pieceId').equals(piece.id).toArray()).sort(
+      (a, b) => a.createdAt - b.createdAt
+    )
+    const refsP: string[] = []
+    for (const photo of photosPiece) {
+      compteur += 1
+      const r = ref(compteur)
+      refsP.push(r)
+      annexeGlobale.push({
+        photo,
+        ref: r,
+        legende: `${piece.nom} — vue d'ensemble — ${formaterDateMs(photo.createdAt)}`,
+        pieceId: piece.id,
+        estCompteur: false,
+      })
+    }
+    refsParPiece.set(piece.id, refsP)
+    photosParPiece.set(piece.id, photosPiece)
   }
 
   // Photos de compteur, numérotées à la suite (annexe EDL uniquement).
@@ -142,7 +172,10 @@ export async function chargerImpression(constatId: string, doc: DocType): Promis
   const lignesPieceDoc: LignePiece[] = [] // pour la conformité et les valeurs
   for (const piece of pieces) {
     const lignes = (lignesParPiece.get(piece.id) ?? []).filter((l) => retientPourDoc(doc, l))
-    if (lignes.length === 0) continue // pièce sans ligne pour ce document : omise
+    const photosPieceDoc = retientPhotosPiece(doc, piece) ? (photosParPiece.get(piece.id) ?? []) : []
+    const refsPhotosPiece = photosPieceDoc.length ? (refsParPiece.get(piece.id) ?? []) : []
+    // Pièce sans ligne ni photo d'ensemble pour ce document : omise.
+    if (lignes.length === 0 && photosPieceDoc.length === 0) continue
     const lignesImpr: LigneImpression[] = []
     for (const ligne of lignes) {
       // Sortie : photos d'entrée (via la ligne d'origine) pour l'affichage « en regard ».
@@ -161,13 +194,18 @@ export async function chargerImpression(constatId: string, doc: DocType): Promis
         photosEntree,
       })
     }
-    piecesImpr.push({ piece, lignes: lignesImpr })
+    piecesImpr.push({ piece, lignes: lignesImpr, photosPiece: photosPieceDoc, refsPhotosPiece })
     for (const ligne of lignes) lignesPieceDoc.push({ ligne, piece })
   }
 
   const idsLignesDoc = new Set(lignesPieceDoc.map((lp) => lp.ligne.id))
+  const idsPiecesPhotosDoc = new Set(piecesImpr.filter((p) => p.photosPiece.length > 0).map((p) => p.piece.id))
   const annexe: PhotoNumerotee[] = annexeGlobale
-    .filter((a) => (a.estCompteur ? doc === 'edl' : a.ligneId && idsLignesDoc.has(a.ligneId)))
+    .filter((a) => {
+      if (a.estCompteur) return doc === 'edl'
+      if (a.pieceId) return idsPiecesPhotosDoc.has(a.pieceId)
+      return a.ligneId != null && idsLignesDoc.has(a.ligneId)
+    })
     .map(({ photo, ref: r, legende }) => ({ photo, ref: r, legende }))
 
   // 3) Conformité mobilier (inventaire uniquement) : ne compte QUE les lignes

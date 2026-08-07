@@ -455,6 +455,13 @@ a:focus-visible {
 }
 
 /* ---- Photos ---- */
+.bloc-photos-piece {
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  padding: 4px 0 14px;
+  margin-bottom: 4px;
+}
+
 .photos-grille {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));

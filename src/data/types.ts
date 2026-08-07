@@ -86,6 +86,9 @@ export interface Piece {
   nom: string
   type: TypePiece
   ordre: number
+  // Destination des photos d'ensemble de la pièce (vue générale, non liée à une
+  // ligne). Absente sur les pièces créées avant cette évolution → 'edl'.
+  photosDestination?: Destination
 }
 
 export interface Ligne {

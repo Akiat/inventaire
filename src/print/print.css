@@ -192,6 +192,28 @@
   border: 1px solid #999;
 }
 
+/* Photos d'ensemble d'une pièce (sous le titre de la section) */
+.impr .photos-piece {
+  margin: 0 0 6px;
+  break-inside: avoid;
+}
+
+.impr .photos-piece .cellule-vignettes .mini-photo {
+  width: 78px;
+  height: 78px;
+}
+
+.impr .refs-piece {
+  margin: 0 0 6px;
+  font-size: 9pt;
+  color: #444;
+}
+
+.impr .refs-piece .lab {
+  font-weight: 600;
+  color: #000;
+}
+
 /* Comparaison entrée / sortie (constat de sortie) */
 .impr tr.modifie td {
   background: #faece9;

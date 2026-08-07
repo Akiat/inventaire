@@ -210,9 +210,26 @@ export function Imprimer() {
       {pieces.length === 0 && (
         <p style={{ fontStyle: 'italic', color: '#666' }}>Aucune ligne dans ce document.</p>
       )}
-      {pieces.map(({ piece, lignes }) => (
+      {pieces.map(({ piece, lignes, photosPiece, refsPhotosPiece }) => (
         <section key={piece.id}>
           <h2>{piece.nom}</h2>
+          {/* Photos d'ensemble de la pièce (non liées à une ligne). */}
+          {photosPiece.length > 0 && (
+            <div className="photos-piece">
+              {vignettes || estSortie ? (
+                <div className="cellule-vignettes">
+                  {photosPiece.map((p) => (
+                    <MiniPhoto key={p.id} photo={p} />
+                  ))}
+                </div>
+              ) : (
+                <p className="refs-piece">
+                  <span className="lab">Vue d'ensemble</span> {refsPhotosPiece.join(', ')}
+                </p>
+              )}
+            </div>
+          )}
+          {lignes.length > 0 && (
           <div className="table-wrap"><table>
             <thead>
               <tr>
@@ -285,6 +302,7 @@ export function Imprimer() {
               ))}
             </tbody>
           </table></div>
+          )}
         </section>
       ))}
 
