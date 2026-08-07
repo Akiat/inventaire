@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import type { Categorie, TypePiece } from '../data/types'
+import type { Categorie, Destination, TypePiece } from '../data/types'
 import { suggestionsPour } from '../data/catalogue'
 import { designationsLocales } from '../lib/catalogueLocal'
 
@@ -31,15 +31,17 @@ export function FeuilleAjout({
   onFermer,
 }: {
   typePiece: TypePiece
-  onAjouter: (designation: string, categorie: Categorie) => void
+  onAjouter: (designation: string, categorie: Categorie, destination: Destination) => void
   onFermer: () => void
 }) {
   const [recherche, setRecherche] = useState('')
 
   const base = useMemo(() => {
+    // Désignations locales (frappe libre passée) : destination par défaut 'les_deux'.
     const locales = designationsLocales(typePiece).map((d) => ({
       designation: d,
       categorie: 'autre' as Categorie,
+      destinationParDefaut: 'les_deux' as Destination,
       types: [typePiece] as TypePiece[],
     }))
     return [...locales, ...suggestionsPour(typePiece)]
@@ -48,13 +50,13 @@ export function FeuilleAjout({
   const filtrees = useMemo(() => {
     const q = norm(recherche)
     const vues = new Set<string>()
-    const res: { designation: string; categorie: Categorie }[] = []
+    const res: { designation: string; categorie: Categorie; destination: Destination }[] = []
     for (const e of base) {
       const cle = norm(e.designation)
       if (vues.has(cle)) continue
       if (q && !cle.includes(q)) continue
       vues.add(cle)
-      res.push({ designation: e.designation, categorie: e.categorie })
+      res.push({ designation: e.designation, categorie: e.categorie, destination: e.destinationParDefaut })
     }
     return res
   }, [base, recherche])
@@ -87,7 +89,8 @@ export function FeuilleAjout({
             <button
               className="suggestion creer"
               onClick={() => {
-                onAjouter(saisieLibre, 'autre')
+                // Désignation inconnue : 'les_deux' par défaut, corrigeable après.
+                onAjouter(saisieLibre, 'autre', 'les_deux')
                 setRecherche('')
               }}
             >
@@ -100,7 +103,7 @@ export function FeuilleAjout({
               key={f.designation}
               className="suggestion"
               onClick={() => {
-                onAjouter(f.designation, f.categorie)
+                onAjouter(f.designation, f.categorie, f.destination)
                 setRecherche('')
               }}
             >

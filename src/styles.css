@@ -599,6 +599,78 @@ a:focus-visible {
   gap: 10px;
 }
 
+/* ---- Sélecteur de destination (secondaire, neutre) ---- */
+.dest-bloc {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dest-seg {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+
+.dest-opt {
+  min-height: 40px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--surface);
+  border-right: 1px solid var(--rule);
+}
+
+.dest-opt:last-child {
+  border-right: none;
+}
+
+.dest-opt[aria-pressed='true'] {
+  background: var(--ink);
+  color: #fff;
+}
+
+.dest-opt:active {
+  background: #efeee9;
+}
+
+.dest-opt[aria-pressed='true']:active {
+  background: var(--ink);
+}
+
+.dest-aucun {
+  align-self: flex-start;
+  font-size: 0.82rem;
+  color: var(--absent);
+  padding: 4px 2px;
+  text-decoration: underline;
+}
+
+.dest-aucun.actif {
+  color: var(--mauvais);
+  font-weight: 600;
+}
+
+/* Marqueur discret sur la ligne repliée (non coloré, ce n'est pas un état) */
+.marque-dest {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--absent);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 1px 5px;
+  white-space: nowrap;
+}
+
+.marque-dest.hors {
+  font-weight: 500;
+  font-style: italic;
+  border-style: dashed;
+}
+
 /* ---- Réordonnancement (boutons haut/bas) ---- */
 .reorder {
   display: flex;

@@ -1,13 +1,20 @@
-// Chargement et mise en forme des données d'un constat pour l'impression.
+// Chargement et mise en forme d'un constat pour l'impression, orienté document.
+// Un même constat produit deux documents : 'edl' (état des lieux) et
+// 'inventaire' (mobilier). La numérotation des photos est GLOBALE et STABLE :
+// une photo garde son numéro dans les deux documents ; chaque document
+// n'annexe que les photos de ses propres lignes.
 import { db } from '../data/db'
-import type { Constat, Ligne, Logement, Photo, Piece } from '../data/types'
+import type { Cle, Constat, Ligne, Logement, Photo, Piece } from '../data/types'
 import { evaluerMentions, evaluerMobilier, type LignePiece } from '../data/conformite'
+import { destinationDe, inclutEdl, inclutInventaire } from '../data/destination'
 import { totalValeur } from '../lib/valeur'
+
+export type DocType = 'edl' | 'inventaire'
 
 export interface PhotoNumerotee {
   photo: Photo
   ref: string // P-001
-  legende: string // Pièce — Désignation — date
+  legende: string
 }
 
 export interface LigneImpression {
@@ -23,19 +30,21 @@ export interface PieceImpression {
 export interface MobilierImpression {
   libelle: string
   satisfait: boolean
-  refs: string[] // « Pièce — Désignation » des lignes qui satisfont
+  refs: string[]
 }
 
 export interface DonneesImpression {
+  doc: DocType
   constat: Constat
   logement: Logement | undefined
   pieces: PieceImpression[]
   compteurs: { type: string; numero: string; index: string; ref?: string }[]
+  cles: Cle[]
   annexe: PhotoNumerotee[]
   nbPhotos: number
-  mobilier: MobilierImpression[]
-  avertissements: string[] // points manquants (mobilier + mentions), bandeau
-  valeurs: { nom: string; total: number }[] // valeur indicative par pièce (> 0)
+  mobilier: MobilierImpression[] // inventaire uniquement
+  avertissements: string[]
+  valeurs: { nom: string; total: number }[] // inventaire uniquement
   valeurGlobale: number
 }
 
@@ -46,32 +55,39 @@ function formaterDate(iso: string): string {
 }
 
 function formaterDateMs(ms: number): string {
-  return new Date(ms).toLocaleDateString('fr-FR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  })
+  return new Date(ms).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-export async function chargerImpression(constatId: string): Promise<DonneesImpression | null> {
+function ref(n: number): string {
+  return `P-${String(n).padStart(3, '0')}`
+}
+
+// Entrée d'annexe globale, avec de quoi filtrer par document.
+interface AnnexeGlobale extends PhotoNumerotee {
+  ligneId?: string // photo de ligne
+  estCompteur: boolean
+}
+
+function retientPourDoc(doc: DocType, l: Ligne): boolean {
+  const d = destinationDe(l)
+  return doc === 'edl' ? inclutEdl(d) : inclutInventaire(d)
+}
+
+export async function chargerImpression(constatId: string, doc: DocType): Promise<DonneesImpression | null> {
   const constat = await db.constats.get(constatId)
   if (!constat) return null
   const logement = await db.logements.get(constat.logementId)
   const pieces = await db.pieces.where('constatId').equals(constatId).sortBy('ordre')
 
-  const toutesPhotos = await db.photos.where('constatId').equals(constatId).toArray()
-  // Photos de compteur (rattachées au constat).
-  const photosCompteur = new Map<string, Photo>()
-  for (const p of toutesPhotos) photosCompteur.set(p.id, p)
-
+  // 1) Numérotation GLOBALE de toutes les photos (indépendante du document).
   let compteur = 0
-  const annexe: PhotoNumerotee[] = []
-  const refParPhoto = new Map<string, string>()
+  const annexeGlobale: AnnexeGlobale[] = []
+  const refsParLigne = new Map<string, string[]>()
+  const lignesParPiece = new Map<string, Ligne[]>()
 
-  const piecesImpr: PieceImpression[] = []
   for (const piece of pieces) {
     const lignes = await db.lignes.where('pieceId').equals(piece.id).sortBy('ordre')
-    const lignesImpr: LigneImpression[] = []
+    lignesParPiece.set(piece.id, lignes)
     for (const ligne of lignes) {
       const photos = (await db.photos.where('ligneId').equals(ligne.id).toArray()).sort(
         (a, b) => a.createdAt - b.createdAt
@@ -79,69 +95,99 @@ export async function chargerImpression(constatId: string): Promise<DonneesImpre
       const refs: string[] = []
       for (const photo of photos) {
         compteur += 1
-        const ref = `P-${String(compteur).padStart(3, '0')}`
-        refParPhoto.set(photo.id, ref)
-        refs.push(ref)
-        annexe.push({
+        const r = ref(compteur)
+        refs.push(r)
+        annexeGlobale.push({
           photo,
-          ref,
+          ref: r,
           legende: `${piece.nom} — ${ligne.designation} — ${formaterDateMs(photo.createdAt)}`,
+          ligneId: ligne.id,
+          estCompteur: false,
         })
       }
-      lignesImpr.push({ ligne, refsPhotos: refs })
+      refsParLigne.set(ligne.id, refs)
     }
-    piecesImpr.push({ piece, lignes: lignesImpr })
   }
 
-  // Photos de compteur en fin d'annexe.
+  // Photos de compteur, numérotées à la suite (annexe EDL uniquement).
+  const photosConstat = await db.photos.where('constatId').equals(constatId).toArray()
+  const photosCompteur = new Map(photosConstat.map((p) => [p.id, p]))
   const compteurs = constat.compteurs.map((c) => {
-    let ref: string | undefined
+    let r: string | undefined
     if (c.photoId && photosCompteur.has(c.photoId)) {
       compteur += 1
-      ref = `P-${String(compteur).padStart(3, '0')}`
+      r = ref(compteur)
       const photo = photosCompteur.get(c.photoId)!
-      annexe.push({
+      annexeGlobale.push({
         photo,
-        ref,
-        legende: `Compteur ${c.type || '—'} — index ${c.index || '—'} — ${formaterDateMs(
-          photo.createdAt
-        )}`,
+        ref: r,
+        legende: `Compteur ${c.type || '—'} — index ${c.index || '—'} — ${formaterDateMs(photo.createdAt)}`,
+        estCompteur: true,
       })
     }
-    return { type: c.type, numero: c.numero, index: c.index, ref }
+    return { type: c.type, numero: c.numero, index: c.index, ref: r }
   })
 
-  // Conformité (lot 1) : rattachement mobilier + points manquants pour le bandeau.
-  const lignesPiece: LignePiece[] = piecesImpr.flatMap(({ piece, lignes }) =>
-    lignes.map(({ ligne }) => ({ ligne, piece }))
-  )
-  const nbParPiece = new Map<string, number>()
-  for (const { piece } of lignesPiece) nbParPiece.set(piece.id, (nbParPiece.get(piece.id) ?? 0) + 1)
+  // 2) Filtrage par document.
+  const piecesImpr: PieceImpression[] = []
+  const lignesPieceDoc: LignePiece[] = [] // pour la conformité et les valeurs
+  for (const piece of pieces) {
+    const lignes = (lignesParPiece.get(piece.id) ?? []).filter((l) => retientPourDoc(doc, l))
+    if (lignes.length === 0) continue // pièce sans ligne pour ce document : omise
+    piecesImpr.push({
+      piece,
+      lignes: lignes.map((ligne) => ({ ligne, refsPhotos: refsParLigne.get(ligne.id) ?? [] })),
+    })
+    for (const ligne of lignes) lignesPieceDoc.push({ ligne, piece })
+  }
 
-  const resMobilier = evaluerMobilier(lignesPiece, constat.conformite)
-  const mobilier: MobilierImpression[] = resMobilier.map((r) => ({
-    libelle: r.item.libelle,
-    satisfait: r.satisfait,
-    refs: r.lignes.map(({ piece, ligne }) => `${piece.nom} — ${ligne.designation}`),
-  }))
+  const idsLignesDoc = new Set(lignesPieceDoc.map((lp) => lp.ligne.id))
+  const annexe: PhotoNumerotee[] = annexeGlobale
+    .filter((a) => (a.estCompteur ? doc === 'edl' : a.ligneId && idsLignesDoc.has(a.ligneId)))
+    .map(({ photo, ref: r, legende }) => ({ photo, ref: r, legende }))
 
-  const resMentions = evaluerMentions(constat, logement, pieces, nbParPiece)
+  // 3) Conformité mobilier (inventaire uniquement) : ne compte QUE les lignes
+  // dont la destination inclut l'inventaire — donc les lignes du document.
+  let mobilier: MobilierImpression[] = []
+  if (doc === 'inventaire') {
+    const resMobilier = evaluerMobilier(lignesPieceDoc, constat.conformite)
+    mobilier = resMobilier.map((m) => ({
+      libelle: m.item.libelle,
+      satisfait: m.satisfait,
+      refs: m.lignes.map(({ piece, ligne }) => `${piece.nom} — ${ligne.designation}`),
+    }))
+  }
+
+  // 4) Bandeau d'avertissement, propre au document.
+  const nbLignesParPiece = new Map<string, number>()
+  for (const { piece } of lignesPieceDoc)
+    nbLignesParPiece.set(piece.id, (nbLignesParPiece.get(piece.id) ?? 0) + 1)
+  const piecesDuDoc = piecesImpr.map((p) => p.piece)
+  const resMentions = evaluerMentions(constat, logement, piecesDuDoc, nbLignesParPiece)
+  // Compteurs et clés ne concernent que l'EDL.
+  const mentionsDoc =
+    doc === 'edl' ? resMentions : resMentions.filter((m) => m.id !== 'compteurs' && m.id !== 'cles')
   const avertissements = [
-    ...resMobilier.filter((r) => !r.satisfait).map((r) => r.item.libelle),
-    ...resMentions.filter((r) => !r.satisfait).map((r) => r.libelle),
+    ...mobilier.filter((m) => !m.satisfait).map((m) => m.libelle),
+    ...mentionsDoc.filter((m) => !m.satisfait).map((m) => m.libelle),
   ]
 
-  // Valeurs indicatives par pièce (inventaire assurance), pièces à total > 0.
-  const valeurs = piecesImpr
-    .map(({ piece, lignes }) => ({ nom: piece.nom, total: totalValeur(lignes.map((l) => l.ligne)) }))
-    .filter((v) => v.total > 0)
+  // 5) Valeurs indicatives (inventaire uniquement).
+  let valeurs: { nom: string; total: number }[] = []
+  if (doc === 'inventaire') {
+    valeurs = piecesImpr
+      .map(({ piece, lignes }) => ({ nom: piece.nom, total: totalValeur(lignes.map((l) => l.ligne)) }))
+      .filter((v) => v.total > 0)
+  }
   const valeurGlobale = valeurs.reduce((s, v) => s + v.total, 0)
 
   return {
+    doc,
     constat,
     logement,
     pieces: piecesImpr,
     compteurs,
+    cles: constat.cles,
     annexe,
     nbPhotos: annexe.length,
     mobilier,
@@ -149,6 +195,21 @@ export async function chargerImpression(constatId: string): Promise<DonneesImpre
     valeurs,
     valeurGlobale,
   }
+}
+
+// Compte les lignes incluses dans chaque document (écran Documents).
+export async function compterLignesParDoc(constatId: string): Promise<{ edl: number; inventaire: number }> {
+  const pieces = await db.pieces.where('constatId').equals(constatId).toArray()
+  const ids = pieces.map((p) => p.id)
+  const lignes = ids.length ? await db.lignes.where('pieceId').anyOf(ids).toArray() : []
+  let edl = 0
+  let inventaire = 0
+  for (const l of lignes) {
+    const d = destinationDe(l)
+    if (inclutEdl(d)) edl += 1
+    if (inclutInventaire(d)) inventaire += 1
+  }
+  return { edl, inventaire }
 }
 
 export { formaterDate }

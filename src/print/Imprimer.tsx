@@ -4,7 +4,7 @@ import type { Photo } from '../data/types'
 import { etatLibelle } from '../data/actions'
 import { formaterEuros } from '../lib/valeur'
 import { useBlobUrl } from '../lib/hooks'
-import { chargerImpression, formaterDate, type DonneesImpression } from './donnees'
+import { chargerImpression, formaterDate, type DocType, type DonneesImpression } from './donnees'
 import './print.css'
 
 function PhotoImg({ photo }: { photo: Photo }) {
@@ -13,18 +13,20 @@ function PhotoImg({ photo }: { photo: Photo }) {
 }
 
 export function Imprimer() {
-  const { constatId = '' } = useParams()
+  const { constatId = '', doc = 'edl' } = useParams()
+  const typeDoc: DocType = doc === 'inventaire' ? 'inventaire' : 'edl'
   const [data, setData] = useState<DonneesImpression | null | undefined>(undefined)
 
   useEffect(() => {
     let vivant = true
-    chargerImpression(constatId).then((d) => {
+    setData(undefined)
+    chargerImpression(constatId, typeDoc).then((d) => {
       if (vivant) setData(d)
     })
     return () => {
       vivant = false
     }
-  }, [constatId])
+  }, [constatId, typeDoc])
 
   if (data === undefined) return <div className="impr">Chargement…</div>
   if (data === null)
@@ -34,16 +36,20 @@ export function Imprimer() {
       </div>
     )
 
-  const { constat, logement, pieces, compteurs, annexe, nbPhotos, mobilier, avertissements, valeurs, valeurGlobale } =
+  const { constat, logement, pieces, compteurs, cles, annexe, nbPhotos, mobilier, avertissements, valeurs, valeurGlobale } =
     data
-  const titre = constat.type === 'entree' ? "Constat d'état des lieux d'entrée" : "Constat d'état des lieux de sortie"
+  const estEdl = typeDoc === 'edl'
+  const typeLabel = constat.type === 'entree' ? "d'entrée" : 'de sortie'
+  const titre = estEdl
+    ? `Constat d'état des lieux ${typeLabel}`
+    : `Inventaire et état du mobilier ${typeLabel}`
   const locataires = constat.locataires.filter((l) => l.trim())
 
   return (
     <div className="impr">
       <div className="barre-outils">
-        <a className="btn" href={`#/constat/${constatId}/pieces`}>
-          ‹ Retour
+        <a className="btn" href={`#/constat/${constatId}/documents`}>
+          ‹ Documents
         </a>
         <button className="btn primaire" onClick={() => window.print()}>
           Imprimer / Exporter en PDF
@@ -53,14 +59,13 @@ export function Imprimer() {
         </span>
       </div>
 
-      {/* Bandeau d'avertissement de conformité, tant qu'un point manque. */}
       {avertissements.length > 0 && (
         <div className="avert">
           <strong>Points de conformité à vérifier :</strong> {avertissements.join(' · ')}.
         </div>
       )}
 
-      {/* En-tête du document */}
+      {/* En-tête du document — mentions complètes, document autonome. */}
       <div className="doc-entete">
         <h1>{titre}</h1>
         <div className="infos">
@@ -91,8 +96,8 @@ export function Imprimer() {
         </div>
       </div>
 
-      {/* Compteurs */}
-      {compteurs.length > 0 && (
+      {/* Compteurs et clés : état des lieux uniquement. */}
+      {estEdl && compteurs.length > 0 && (
         <>
           <h2>Relevés des compteurs</h2>
           <table>
@@ -118,8 +123,7 @@ export function Imprimer() {
         </>
       )}
 
-      {/* Clés */}
-      {constat.cles.length > 0 && (
+      {estEdl && cles.length > 0 && (
         <>
           <h2>Clés et moyens d'accès</h2>
           <table>
@@ -130,7 +134,7 @@ export function Imprimer() {
               </tr>
             </thead>
             <tbody>
-              {constat.cles.map((c, i) => (
+              {cles.map((c, i) => (
                 <tr key={i}>
                   <td>{c.libelle || '—'}</td>
                   <td className="tnum">{c.nombre}</td>
@@ -142,66 +146,68 @@ export function Imprimer() {
       )}
 
       {/* Pièces */}
+      {pieces.length === 0 && (
+        <p style={{ fontStyle: 'italic', color: '#666' }}>Aucune ligne dans ce document.</p>
+      )}
       {pieces.map(({ piece, lignes }) => (
         <section key={piece.id}>
           <h2>{piece.nom}</h2>
-          {lignes.length === 0 ? (
-            <p style={{ fontStyle: 'italic', color: '#666' }}>Aucune ligne.</p>
-          ) : (
-            <table>
-              <thead>
-                <tr>
-                  <th style={{ width: '30%' }}>Désignation</th>
-                  <th style={{ width: '8%' }}>Qté</th>
-                  <th style={{ width: '14%' }}>État</th>
-                  <th>Observations</th>
-                  <th style={{ width: '14%' }}>Photos</th>
+          <table>
+            <thead>
+              <tr>
+                <th style={{ width: estEdl ? '32%' : '28%' }}>Désignation</th>
+                <th style={{ width: '8%' }}>Qté</th>
+                <th style={{ width: '14%' }}>État</th>
+                <th>Observations</th>
+                <th style={{ width: '14%' }}>Photos</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lignes.map(({ ligne, refsPhotos }) => (
+                <tr key={ligne.id}>
+                  <td>{ligne.designation}</td>
+                  {/* EDL masque la quantité quand elle vaut 1 ; l'inventaire l'affiche toujours. */}
+                  <td className="qte tnum">{estEdl ? (ligne.quantite > 1 ? ligne.quantite : '') : ligne.quantite}</td>
+                  <td className="etat">{etatLibelle(ligne.etat)}</td>
+                  <td>{ligne.observations || ''}</td>
+                  <td className="refs">{refsPhotos.join(', ')}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {lignes.map(({ ligne, refsPhotos }) => (
-                  <tr key={ligne.id}>
-                    <td>{ligne.designation}</td>
-                    <td className="qte tnum">{ligne.quantite}</td>
-                    <td className="etat">{etatLibelle(ligne.etat)}</td>
-                    <td>{ligne.observations || ''}</td>
-                    <td className="refs">{refsPhotos.join(', ')}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+              ))}
+            </tbody>
+          </table>
         </section>
       ))}
 
-      {/* Mobilier obligatoire (meublé) : catégories et lignes rattachées. */}
-      <section>
-        <h2>Mobilier obligatoire (meublé)</h2>
-        <p className="meta" style={{ fontSize: '9pt', color: '#444', margin: '0 0 6px' }}>
-          Décret n° 2015-981 du 31 juillet 2015.
-        </p>
-        <table>
-          <thead>
-            <tr>
-              <th style={{ width: '32%' }}>Catégorie</th>
-              <th style={{ width: '14%' }}>Présent</th>
-              <th>Ligne(s) correspondante(s)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {mobilier.map((m) => (
-              <tr key={m.libelle}>
-                <td>{m.libelle}</td>
-                <td>{m.satisfait ? 'Oui' : 'Manquant'}</td>
-                <td>{m.refs.join(' ; ') || '—'}</td>
+      {/* Mobilier obligatoire : inventaire uniquement, en fin de document. */}
+      {!estEdl && (
+        <section>
+          <h2>Mobilier obligatoire (meublé)</h2>
+          <p className="meta" style={{ fontSize: '9pt', color: '#444', margin: '0 0 6px' }}>
+            Décret n° 2015-981 du 31 juillet 2015.
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th style={{ width: '32%' }}>Catégorie</th>
+                <th style={{ width: '14%' }}>Présent</th>
+                <th>Ligne(s) correspondante(s)</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
+            </thead>
+            <tbody>
+              {mobilier.map((m) => (
+                <tr key={m.libelle}>
+                  <td>{m.libelle}</td>
+                  <td>{m.satisfait ? 'Oui' : 'Manquant'}</td>
+                  <td>{m.refs.join(' ; ') || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
 
-      {/* Valeurs indicatives (inventaire assurance), si renseignées. */}
-      {valeurs.length > 0 && (
+      {/* Valeurs indicatives : inventaire uniquement. */}
+      {!estEdl && valeurs.length > 0 && (
         <section>
           <h2>Valeurs indicatives</h2>
           <table>
@@ -244,7 +250,7 @@ export function Imprimer() {
         {nbPhotos > 0 ? ` ${nbPhotos} photo(s) annexée(s).` : ' Aucune photo annexée.'}
       </p>
 
-      {/* Annexe photos : grille 2 × 3 par page */}
+      {/* Annexe photos : grille 2 × 3 par page, du document courant. */}
       {annexe.length > 0 && (
         <section className="annexe">
           <h2>Annexe photographique</h2>

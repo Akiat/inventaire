@@ -1,116 +1,121 @@
-import type { Categorie, TypePiece } from './types'
+import type { Categorie, Destination, TypePiece } from './types'
 
 // Catalogue de départ, en dur. Chaque entrée = une désignation, sa catégorie,
-// et les types de pièce où elle est proposée ('toutes' = partout).
+// sa destination par défaut (EDL / inventaire / les deux), et les types de pièce
+// où elle est proposée ('toutes' = partout).
 // L'ordre du tableau vaut ordre de fréquence : les plus courantes d'abord.
+// La destination par défaut découle de la NATURE de l'élément, pas de la
+// catégorie — cf. règles de l'évolution « deux documents ».
 
 export interface EntreeCatalogue {
   designation: string
   categorie: Categorie
+  destinationParDefaut: Destination
   types: TypePiece[] | 'toutes'
 }
 
-// Communes à toutes les pièces : bâti et second œuvre.
+// Communes à toutes les pièces : bâti et second œuvre → état des lieux.
+// Exception : le luminaire (fixe) relève des deux documents.
 const COMMUNES: EntreeCatalogue[] = [
-  { designation: 'Sol', categorie: 'sol', types: 'toutes' },
-  { designation: 'Murs', categorie: 'mur', types: 'toutes' },
-  { designation: 'Plafond', categorie: 'plafond', types: 'toutes' },
-  { designation: 'Plinthes', categorie: 'menuiserie', types: 'toutes' },
-  { designation: 'Porte', categorie: 'menuiserie', types: 'toutes' },
-  { designation: 'Fenêtre', categorie: 'menuiserie', types: 'toutes' },
-  { designation: 'Volet / store', categorie: 'menuiserie', types: 'toutes' },
-  { designation: 'Radiateur', categorie: 'equipement', types: 'toutes' },
-  { designation: 'Interrupteurs', categorie: 'equipement', types: 'toutes' },
-  { designation: 'Prises', categorie: 'equipement', types: 'toutes' },
-  { designation: 'Luminaire', categorie: 'equipement', types: 'toutes' },
-  { designation: 'Détecteur de fumée', categorie: 'equipement', types: 'toutes' },
+  { designation: 'Sol', categorie: 'sol', destinationParDefaut: 'edl', types: 'toutes' },
+  { designation: 'Murs', categorie: 'mur', destinationParDefaut: 'edl', types: 'toutes' },
+  { designation: 'Plafond', categorie: 'plafond', destinationParDefaut: 'edl', types: 'toutes' },
+  { designation: 'Plinthes', categorie: 'menuiserie', destinationParDefaut: 'edl', types: 'toutes' },
+  { designation: 'Porte', categorie: 'menuiserie', destinationParDefaut: 'edl', types: 'toutes' },
+  { designation: 'Fenêtre', categorie: 'menuiserie', destinationParDefaut: 'edl', types: 'toutes' },
+  { designation: 'Volet / store', categorie: 'menuiserie', destinationParDefaut: 'edl', types: 'toutes' },
+  { designation: 'Radiateur', categorie: 'equipement', destinationParDefaut: 'edl', types: 'toutes' },
+  { designation: 'Interrupteurs', categorie: 'equipement', destinationParDefaut: 'edl', types: 'toutes' },
+  { designation: 'Prises', categorie: 'equipement', destinationParDefaut: 'edl', types: 'toutes' },
+  { designation: 'Luminaire', categorie: 'equipement', destinationParDefaut: 'les_deux', types: 'toutes' },
+  { designation: 'Détecteur de fumée', categorie: 'equipement', destinationParDefaut: 'edl', types: 'toutes' },
 ]
 
 const SPECIFIQUES: EntreeCatalogue[] = [
   // Cuisine
-  { designation: 'Plaque de cuisson', categorie: 'equipement', types: ['cuisine'] },
-  { designation: 'Four', categorie: 'equipement', types: ['cuisine'] },
-  { designation: 'Micro-ondes', categorie: 'equipement', types: ['cuisine'] },
-  { designation: 'Hotte', categorie: 'equipement', types: ['cuisine'] },
-  { designation: 'Réfrigérateur', categorie: 'equipement', types: ['cuisine'] },
-  { designation: 'Congélateur', categorie: 'equipement', types: ['cuisine'] },
-  { designation: 'Lave-vaisselle', categorie: 'equipement', types: ['cuisine'] },
-  { designation: 'Évier', categorie: 'equipement', types: ['cuisine'] },
-  { designation: 'Robinetterie', categorie: 'equipement', types: ['cuisine', 'sdb', 'wc'] },
-  { designation: 'Plan de travail', categorie: 'mobilier', types: ['cuisine'] },
-  { designation: 'Meubles hauts', categorie: 'mobilier', types: ['cuisine'] },
-  { designation: 'Meubles bas', categorie: 'mobilier', types: ['cuisine'] },
-  { designation: 'Poubelle', categorie: 'equipement', types: ['cuisine'] },
-  { designation: 'Assiettes plates', categorie: 'vaisselle', types: ['cuisine'] },
-  { designation: 'Assiettes creuses', categorie: 'vaisselle', types: ['cuisine'] },
-  { designation: 'Bols', categorie: 'vaisselle', types: ['cuisine'] },
-  { designation: 'Verres', categorie: 'vaisselle', types: ['cuisine'] },
-  { designation: 'Tasses', categorie: 'vaisselle', types: ['cuisine'] },
-  { designation: 'Couverts', categorie: 'vaisselle', types: ['cuisine'] },
-  { designation: 'Casseroles', categorie: 'vaisselle', types: ['cuisine'] },
-  { designation: 'Poêles', categorie: 'vaisselle', types: ['cuisine'] },
-  { designation: 'Faitout', categorie: 'vaisselle', types: ['cuisine'] },
-  { designation: 'Saladier', categorie: 'vaisselle', types: ['cuisine'] },
-  { designation: 'Planche à découper', categorie: 'vaisselle', types: ['cuisine'] },
-  { designation: 'Couteaux', categorie: 'vaisselle', types: ['cuisine'] },
-  { designation: 'Passoire', categorie: 'vaisselle', types: ['cuisine'] },
-  { designation: 'Essoreuse', categorie: 'vaisselle', types: ['cuisine'] },
-  { designation: 'Plat à four', categorie: 'vaisselle', types: ['cuisine'] },
-  { designation: 'Égouttoir', categorie: 'vaisselle', types: ['cuisine'] },
-  { designation: 'Torchons', categorie: 'vaisselle', types: ['cuisine'] },
+  { designation: 'Plaque de cuisson', categorie: 'equipement', destinationParDefaut: 'les_deux', types: ['cuisine'] },
+  { designation: 'Four', categorie: 'equipement', destinationParDefaut: 'les_deux', types: ['cuisine'] },
+  { designation: 'Micro-ondes', categorie: 'equipement', destinationParDefaut: 'les_deux', types: ['cuisine'] },
+  { designation: 'Hotte', categorie: 'equipement', destinationParDefaut: 'les_deux', types: ['cuisine'] },
+  { designation: 'Réfrigérateur', categorie: 'equipement', destinationParDefaut: 'les_deux', types: ['cuisine'] },
+  { designation: 'Congélateur', categorie: 'equipement', destinationParDefaut: 'les_deux', types: ['cuisine'] },
+  { designation: 'Lave-vaisselle', categorie: 'equipement', destinationParDefaut: 'les_deux', types: ['cuisine'] },
+  { designation: 'Évier', categorie: 'equipement', destinationParDefaut: 'edl', types: ['cuisine'] },
+  { designation: 'Robinetterie', categorie: 'equipement', destinationParDefaut: 'edl', types: ['cuisine', 'sdb', 'wc'] },
+  { designation: 'Plan de travail', categorie: 'mobilier', destinationParDefaut: 'edl', types: ['cuisine'] },
+  { designation: 'Meubles hauts', categorie: 'mobilier', destinationParDefaut: 'edl', types: ['cuisine'] },
+  { designation: 'Meubles bas', categorie: 'mobilier', destinationParDefaut: 'edl', types: ['cuisine'] },
+  { designation: 'Poubelle', categorie: 'equipement', destinationParDefaut: 'inventaire', types: ['cuisine'] },
+  { designation: 'Assiettes plates', categorie: 'vaisselle', destinationParDefaut: 'inventaire', types: ['cuisine'] },
+  { designation: 'Assiettes creuses', categorie: 'vaisselle', destinationParDefaut: 'inventaire', types: ['cuisine'] },
+  { designation: 'Bols', categorie: 'vaisselle', destinationParDefaut: 'inventaire', types: ['cuisine'] },
+  { designation: 'Verres', categorie: 'vaisselle', destinationParDefaut: 'inventaire', types: ['cuisine'] },
+  { designation: 'Tasses', categorie: 'vaisselle', destinationParDefaut: 'inventaire', types: ['cuisine'] },
+  { designation: 'Couverts', categorie: 'vaisselle', destinationParDefaut: 'inventaire', types: ['cuisine'] },
+  { designation: 'Casseroles', categorie: 'vaisselle', destinationParDefaut: 'inventaire', types: ['cuisine'] },
+  { designation: 'Poêles', categorie: 'vaisselle', destinationParDefaut: 'inventaire', types: ['cuisine'] },
+  { designation: 'Faitout', categorie: 'vaisselle', destinationParDefaut: 'inventaire', types: ['cuisine'] },
+  { designation: 'Saladier', categorie: 'vaisselle', destinationParDefaut: 'inventaire', types: ['cuisine'] },
+  { designation: 'Planche à découper', categorie: 'vaisselle', destinationParDefaut: 'inventaire', types: ['cuisine'] },
+  { designation: 'Couteaux', categorie: 'vaisselle', destinationParDefaut: 'inventaire', types: ['cuisine'] },
+  { designation: 'Passoire', categorie: 'vaisselle', destinationParDefaut: 'inventaire', types: ['cuisine'] },
+  { designation: 'Essoreuse', categorie: 'vaisselle', destinationParDefaut: 'inventaire', types: ['cuisine'] },
+  { designation: 'Plat à four', categorie: 'vaisselle', destinationParDefaut: 'inventaire', types: ['cuisine'] },
+  { designation: 'Égouttoir', categorie: 'vaisselle', destinationParDefaut: 'inventaire', types: ['cuisine'] },
+  { designation: 'Torchons', categorie: 'vaisselle', destinationParDefaut: 'inventaire', types: ['cuisine'] },
 
   // Chambre
-  { designation: 'Sommier', categorie: 'mobilier', types: ['chambre'] },
-  { designation: 'Matelas', categorie: 'mobilier', types: ['chambre'] },
-  { designation: 'Couette', categorie: 'mobilier', types: ['chambre'] },
-  { designation: 'Oreillers', categorie: 'mobilier', types: ['chambre'] },
-  { designation: 'Protège-matelas', categorie: 'mobilier', types: ['chambre'] },
-  { designation: 'Armoire', categorie: 'mobilier', types: ['chambre'] },
-  { designation: 'Penderie', categorie: 'mobilier', types: ['chambre'] },
-  { designation: 'Cintres', categorie: 'mobilier', types: ['chambre'] },
-  { designation: 'Chevet', categorie: 'mobilier', types: ['chambre'] },
-  { designation: 'Occultation', categorie: 'menuiserie', types: ['chambre'] },
+  { designation: 'Sommier', categorie: 'mobilier', destinationParDefaut: 'inventaire', types: ['chambre'] },
+  { designation: 'Matelas', categorie: 'mobilier', destinationParDefaut: 'inventaire', types: ['chambre'] },
+  { designation: 'Couette', categorie: 'mobilier', destinationParDefaut: 'inventaire', types: ['chambre'] },
+  { designation: 'Oreillers', categorie: 'mobilier', destinationParDefaut: 'inventaire', types: ['chambre'] },
+  { designation: 'Protège-matelas', categorie: 'mobilier', destinationParDefaut: 'inventaire', types: ['chambre'] },
+  { designation: 'Armoire', categorie: 'mobilier', destinationParDefaut: 'inventaire', types: ['chambre'] },
+  { designation: 'Penderie', categorie: 'mobilier', destinationParDefaut: 'inventaire', types: ['chambre'] },
+  { designation: 'Cintres', categorie: 'mobilier', destinationParDefaut: 'inventaire', types: ['chambre'] },
+  { designation: 'Chevet', categorie: 'mobilier', destinationParDefaut: 'inventaire', types: ['chambre'] },
+  { designation: 'Occultation', categorie: 'menuiserie', destinationParDefaut: 'les_deux', types: ['chambre'] },
 
   // Séjour
-  { designation: 'Canapé', categorie: 'mobilier', types: ['sejour'] },
-  { designation: 'Table', categorie: 'mobilier', types: ['sejour', 'cuisine'] },
-  { designation: 'Chaises', categorie: 'mobilier', types: ['sejour', 'cuisine'] },
-  { designation: 'TV', categorie: 'equipement', types: ['sejour'] },
-  { designation: 'Meuble TV', categorie: 'mobilier', types: ['sejour'] },
-  { designation: 'Étagères', categorie: 'mobilier', types: ['sejour', 'chambre'] },
-  { designation: 'Rideaux', categorie: 'menuiserie', types: ['sejour', 'chambre'] },
+  { designation: 'Canapé', categorie: 'mobilier', destinationParDefaut: 'inventaire', types: ['sejour'] },
+  { designation: 'Table', categorie: 'mobilier', destinationParDefaut: 'inventaire', types: ['sejour', 'cuisine'] },
+  { designation: 'Chaises', categorie: 'mobilier', destinationParDefaut: 'inventaire', types: ['sejour', 'cuisine'] },
+  { designation: 'TV', categorie: 'equipement', destinationParDefaut: 'inventaire', types: ['sejour'] },
+  { designation: 'Meuble TV', categorie: 'mobilier', destinationParDefaut: 'inventaire', types: ['sejour'] },
+  { designation: 'Étagères', categorie: 'mobilier', destinationParDefaut: 'inventaire', types: ['sejour', 'chambre'] },
+  { designation: 'Rideaux', categorie: 'menuiserie', destinationParDefaut: 'inventaire', types: ['sejour', 'chambre'] },
 
   // Salle de bains
-  { designation: 'Vasque', categorie: 'equipement', types: ['sdb'] },
-  { designation: 'Douche / baignoire', categorie: 'equipement', types: ['sdb'] },
-  { designation: 'Paroi', categorie: 'equipement', types: ['sdb'] },
-  { designation: 'Miroir', categorie: 'equipement', types: ['sdb'] },
-  { designation: 'Meuble', categorie: 'mobilier', types: ['sdb'] },
-  { designation: 'Sèche-serviettes', categorie: 'equipement', types: ['sdb'] },
-  { designation: 'VMC', categorie: 'equipement', types: ['sdb', 'wc'] },
-  { designation: 'Porte-serviettes', categorie: 'equipement', types: ['sdb'] },
+  { designation: 'Vasque', categorie: 'equipement', destinationParDefaut: 'edl', types: ['sdb'] },
+  { designation: 'Douche / baignoire', categorie: 'equipement', destinationParDefaut: 'edl', types: ['sdb'] },
+  { designation: 'Paroi', categorie: 'equipement', destinationParDefaut: 'edl', types: ['sdb'] },
+  { designation: 'Miroir', categorie: 'equipement', destinationParDefaut: 'edl', types: ['sdb'] },
+  { designation: 'Meuble', categorie: 'mobilier', destinationParDefaut: 'edl', types: ['sdb'] },
+  { designation: 'Sèche-serviettes', categorie: 'equipement', destinationParDefaut: 'edl', types: ['sdb'] },
+  { designation: 'VMC', categorie: 'equipement', destinationParDefaut: 'edl', types: ['sdb', 'wc'] },
+  { designation: 'Porte-serviettes', categorie: 'equipement', destinationParDefaut: 'inventaire', types: ['sdb'] },
 
   // WC
-  { designation: 'Cuvette', categorie: 'equipement', types: ['wc'] },
-  { designation: 'Abattant', categorie: 'equipement', types: ['wc'] },
-  { designation: 'Chasse', categorie: 'equipement', types: ['wc'] },
-  { designation: 'Lave-mains', categorie: 'equipement', types: ['wc'] },
-  { designation: 'Balai WC', categorie: 'entretien', types: ['wc'] },
+  { designation: 'Cuvette', categorie: 'equipement', destinationParDefaut: 'edl', types: ['wc'] },
+  { designation: 'Abattant', categorie: 'equipement', destinationParDefaut: 'edl', types: ['wc'] },
+  { designation: 'Chasse', categorie: 'equipement', destinationParDefaut: 'edl', types: ['wc'] },
+  { designation: 'Lave-mains', categorie: 'equipement', destinationParDefaut: 'edl', types: ['wc'] },
+  { designation: 'Balai WC', categorie: 'entretien', destinationParDefaut: 'inventaire', types: ['wc'] },
 
   // Entretien (rattaché à buanderie et cuisine, faute de pièce dédiée)
-  { designation: 'Aspirateur', categorie: 'entretien', types: ['buanderie', 'cuisine'] },
-  { designation: 'Balai', categorie: 'entretien', types: ['buanderie', 'cuisine'] },
-  { designation: 'Pelle', categorie: 'entretien', types: ['buanderie', 'cuisine'] },
-  { designation: 'Serpillière', categorie: 'entretien', types: ['buanderie', 'cuisine'] },
-  { designation: 'Seau', categorie: 'entretien', types: ['buanderie', 'cuisine'] },
-  { designation: 'Raclette', categorie: 'entretien', types: ['buanderie', 'cuisine'] },
+  { designation: 'Aspirateur', categorie: 'entretien', destinationParDefaut: 'inventaire', types: ['buanderie', 'cuisine'] },
+  { designation: 'Balai', categorie: 'entretien', destinationParDefaut: 'inventaire', types: ['buanderie', 'cuisine'] },
+  { designation: 'Pelle', categorie: 'entretien', destinationParDefaut: 'inventaire', types: ['buanderie', 'cuisine'] },
+  { designation: 'Serpillière', categorie: 'entretien', destinationParDefaut: 'inventaire', types: ['buanderie', 'cuisine'] },
+  { designation: 'Seau', categorie: 'entretien', destinationParDefaut: 'inventaire', types: ['buanderie', 'cuisine'] },
+  { designation: 'Raclette', categorie: 'entretien', destinationParDefaut: 'inventaire', types: ['buanderie', 'cuisine'] },
 
   // Buanderie
-  { designation: 'Lave-linge', categorie: 'equipement', types: ['buanderie', 'sdb'] },
-  { designation: 'Sèche-linge', categorie: 'equipement', types: ['buanderie'] },
-  { designation: 'Étendoir', categorie: 'equipement', types: ['buanderie'] },
-  { designation: 'Fer', categorie: 'equipement', types: ['buanderie'] },
-  { designation: 'Table à repasser', categorie: 'equipement', types: ['buanderie'] },
+  { designation: 'Lave-linge', categorie: 'equipement', destinationParDefaut: 'les_deux', types: ['buanderie', 'sdb'] },
+  { designation: 'Sèche-linge', categorie: 'equipement', destinationParDefaut: 'les_deux', types: ['buanderie'] },
+  { designation: 'Étendoir', categorie: 'equipement', destinationParDefaut: 'inventaire', types: ['buanderie'] },
+  { designation: 'Fer', categorie: 'equipement', destinationParDefaut: 'inventaire', types: ['buanderie'] },
+  { designation: 'Table à repasser', categorie: 'equipement', destinationParDefaut: 'inventaire', types: ['buanderie'] },
 ]
 
 export const CATALOGUE: EntreeCatalogue[] = [...COMMUNES, ...SPECIFIQUES]

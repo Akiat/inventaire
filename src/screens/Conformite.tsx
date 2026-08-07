@@ -11,6 +11,7 @@ import {
 } from '../data/conformite'
 import { detacherLigne, etatLibelle, rattacherLigne } from '../data/actions'
 import { metaType } from '../data/catalogue'
+import { destinationDe, inclutInventaire } from '../data/destination'
 import type { Piece } from '../data/types'
 
 export function Conformite() {
@@ -44,9 +45,16 @@ export function Conformite() {
       .filter((x): x is LignePiece => !!x)
   }, [pieces, lignes])
 
+  // Le mobilier obligatoire ne compte QUE les lignes dont la destination inclut
+  // l'inventaire (cf. évolution deux documents).
+  const lignesInventaire = useMemo(
+    () => lignesPiece.filter((lp) => inclutInventaire(destinationDe(lp.ligne))),
+    [lignesPiece]
+  )
+
   const resMobilier = useMemo(
-    () => (constat ? evaluerMobilier(lignesPiece, constat.conformite) : []),
-    [lignesPiece, constat?.conformite]
+    () => (constat ? evaluerMobilier(lignesInventaire, constat.conformite) : []),
+    [lignesInventaire, constat?.conformite]
   )
 
   const nbParPiece = useMemo(() => {
@@ -127,7 +135,7 @@ export function Conformite() {
 
       {rattacherItem && (
         <FeuilleRattachement
-          lignesPiece={lignesPiece}
+          lignesPiece={lignesInventaire}
           resultat={resMobilier.find((r) => r.item.id === rattacherItem)!}
           onBasculer={(ligneId, rattachee, auto) =>
             rattachee ? detacherLigne(constatId, rattacherItem, ligneId, auto) : rattacherLigne(constatId, rattacherItem, ligneId)

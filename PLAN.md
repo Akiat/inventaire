@@ -251,6 +251,48 @@ relevé**. Dense, lisible en plein soleil sur un balcon, aucune fioriture.
   assurance
 - Modèles de constat : enregistrer un constat comme modèle réutilisable
 
+# ÉVOLUTION — Deux documents à partir d'une saisie (fait)
+
+Une seule saisie produit DEUX documents distincts : l'**état des lieux** (état du
+logement : revêtements, menuiseries, équipements) et l'**inventaire du mobilier**
+(le meublé). Chaque élément porte une destination qui décide où il apparaît.
+
+## Modèle
+
+- `Ligne.destination : 'edl' | 'inventaire' | 'les_deux' | 'aucun'`.
+  Initialisée depuis l'entrée du catalogue (pas depuis la catégorie),
+  surchargeable ligne par ligne sans effet rétroactif. `'aucun'` = note qui ne
+  sort dans aucun document.
+- `EntreeCatalogue.destinationParDefaut` renseigné pour toutes les entrées.
+  Règles : bâti/second œuvre et équipements fixes → `edl` ; équipements aussi
+  meubles fournis (électroménager, luminaires fixes, occultation chambre) →
+  `les_deux` ; mobilier libre, literie, vaisselle, ustensiles, entretien,
+  textiles, petit électroménager → `inventaire`.
+- Frappe libre d'une désignation inconnue → `'les_deux'` par défaut (mieux vaut
+  un élément en trop qu'un oubli).
+
+## Interface
+
+- Ligne dépliée : sélecteur 3 positions `EDL / Inventaire / Les deux`, neutre,
+  secondaire par rapport au sélecteur d'état. `'aucun'` via un lien discret
+  « Exclure des documents ».
+- Ligne repliée : marqueur discret non coloré (`ÉDL` / `INV` / `ÉDL·INV` /
+  `hors doc`), distinct de la pastille d'état.
+- Écran Pièce : filtre `Tout / EDL / Inventaire` en tête de liste, et action
+  groupée « Tout basculer en… ».
+
+## Documents
+
+- Deux routes : `/imprimer/:constatId/edl` et `/imprimer/:constatId/inventaire`,
+  chacune un document autonome portant toutes ses mentions.
+- Compteurs et clés : dans l'EDL uniquement.
+- Quantité : proéminente dans l'inventaire, masquée quand elle vaut 1 dans l'EDL.
+- Récapitulatif du mobilier obligatoire (décret 2015-981) en fin d'inventaire ;
+  la checklist ne compte QUE les lignes dont la destination inclut l'inventaire.
+- Annexe photos propre à chaque document, mais numérotation GLOBALE et STABLE au
+  constat (une photo garde son numéro dans les deux documents).
+- Écran « Documents » listant les deux, avec le nombre de lignes incluses.
+
 # LOT 3 — Qualité du PDF
 
 - Page de garde, sommaire des pièces

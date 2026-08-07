@@ -15,6 +15,10 @@ export type Categorie =
 
 export type Etat = 'neuf' | 'bon' | 'usage' | 'mauvais' | 'absent'
 
+// Décide dans quel(s) document(s) une ligne apparaît (une seule saisie, deux
+// documents). 'aucun' = note personnelle, dans aucun document.
+export type Destination = 'edl' | 'inventaire' | 'les_deux' | 'aucun'
+
 export type TypePiece =
   | 'cuisine'
   | 'chambre'
@@ -87,6 +91,7 @@ export interface Ligne {
   designation: string
   quantite: number
   etat: Etat
+  destination: Destination // dans quel(s) document(s) la ligne figure
   marqueModele?: string
   numeroSerie?: string
   valeur?: number
@@ -109,6 +114,7 @@ export interface ModeleLigne {
   categorie: Categorie
   designation: string
   quantite: number
+  destination: Destination
   ordre: number
 }
 

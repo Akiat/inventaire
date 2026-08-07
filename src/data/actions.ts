@@ -5,6 +5,7 @@ import { db, uid } from './db'
 import type {
   Categorie,
   Constat,
+  Destination,
   Etat,
   Ligne,
   ModelePiece,
@@ -62,7 +63,8 @@ export async function creerPiece(constatId: string, type: TypePiece): Promise<st
 export async function creerLigne(
   pieceId: string,
   designation: string,
-  categorie: Categorie
+  categorie: Categorie,
+  destination: Destination
 ): Promise<string> {
   const id = uid()
   await db.transaction('rw', db.lignes, async () => {
@@ -74,10 +76,19 @@ export async function creerLigne(
       designation,
       quantite: 1,
       etat: 'bon',
+      destination,
       ordre: suivant(existantes),
     })
   })
   return id
+}
+
+// Action groupée : bascule toutes les lignes d'une pièce vers une destination.
+export async function basculerDestinationPiece(pieceId: string, destination: Destination): Promise<void> {
+  await db.transaction('rw', db.lignes, async () => {
+    const lignes = await db.lignes.where('pieceId').equals(pieceId).toArray()
+    await Promise.all(lignes.map((l) => db.lignes.update(l.id, { destination })))
+  })
 }
 
 export async function dupliquerLigne(ligneId: string): Promise<string | null> {
@@ -225,6 +236,7 @@ export async function enregistrerModele(constatId: string, nom: string): Promise
           categorie: l.categorie,
           designation: l.designation,
           quantite: l.quantite,
+          destination: l.destination ?? 'les_deux',
           ordre: l.ordre,
         })),
       })
@@ -250,6 +262,7 @@ export async function creerConstatDepuisModele(modeleId: string, type: TypeConst
           designation: ml.designation,
           quantite: ml.quantite,
           etat: 'bon', // état réinitialisé : le modèle ne présume pas de l'état
+          destination: ml.destination ?? 'les_deux',
           ordre: ml.ordre,
         })
       }

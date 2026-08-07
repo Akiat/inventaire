@@ -2,14 +2,17 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../data/db'
-import { creerLigne, dupliquerPiece, supprimerPiece } from '../data/actions'
-import type { Categorie } from '../data/types'
+import { basculerDestinationPiece, creerLigne, dupliquerPiece, supprimerPiece } from '../data/actions'
+import type { Categorie, Destination } from '../data/types'
 import { BarreTitre } from '../components/BarreTitre'
 import { FeuilleAjout } from '../components/FeuilleAjout'
 import { LigneItem } from '../components/LigneItem'
 import { enrichir } from '../lib/catalogueLocal'
 import { useDebouncedCallback } from '../lib/hooks'
 import { formaterEuros, totalValeur } from '../lib/valeur'
+import { DEST_LIBELLE, inclutEdl, inclutInventaire, destinationDe } from '../data/destination'
+
+type Filtre = 'tout' | 'edl' | 'inventaire'
 
 export function Piece() {
   const { pieceId = '' } = useParams()
@@ -17,6 +20,8 @@ export function Piece() {
   const ligneCiblee = params.get('ligne') // recherche globale : ouvre cette ligne
   const nav = useNavigate()
   const [ajout, setAjout] = useState(false)
+  const [filtre, setFiltre] = useState<Filtre>('tout')
+  const [bascule, setBascule] = useState(false)
 
   const piece = useLiveQuery(() => db.pieces.get(pieceId), [pieceId])
   const lignes = useLiveQuery(
@@ -44,8 +49,8 @@ export function Piece() {
   const retour = `/constat/${piece.constatId}/pieces`
   const total = totalValeur(lignes ?? [])
 
-  async function ajouterLigne(designation: string, categorie: Categorie) {
-    await creerLigne(pieceId, designation, categorie)
+  async function ajouterLigne(designation: string, categorie: Categorie, destination: Destination) {
+    await creerLigne(pieceId, designation, categorie, destination)
     // Frappe libre → enrichit le catalogue local du type de pièce.
     if (piece) enrichir(piece.type, designation)
   }
@@ -54,6 +59,22 @@ export function Piece() {
     const id = await dupliquerPiece(pieceId)
     if (id) nav(`/piece/${id}`)
   }
+
+  async function toutBasculer(d: Destination) {
+    await basculerDestinationPiece(pieceId, d)
+    setBascule(false)
+  }
+
+  // Filtrage d'affichage (relecture avant génération d'un document).
+  const visibles = (lignes ?? []).filter((l) => {
+    const d = destinationDe(l)
+    if (filtre === 'edl') return inclutEdl(d)
+    if (filtre === 'inventaire') return inclutInventaire(d)
+    return true
+  })
+  // Position dans l'ordre complet (le réordonnancement agit sur les vrais voisins).
+  const rang = new Map((lignes ?? []).map((l, i) => [l.id, i]))
+  const nbTotal = lignes?.length ?? 0
 
   return (
     <div className="app">
@@ -87,9 +108,14 @@ export function Piece() {
           />
         </label>
 
-        <button className="btn pleine" onClick={dupliquer} style={{ marginBottom: 14 }}>
-          ⧉ Dupliquer la pièce
-        </button>
+        <div className="ligne-champs" style={{ marginBottom: 14 }}>
+          <button className="btn" onClick={dupliquer}>
+            ⧉ Dupliquer
+          </button>
+          <button className="btn" onClick={() => setBascule(true)}>
+            ⇄ Tout basculer
+          </button>
+        </div>
 
         <div className="entre">
           <h2 className="sous-titre" style={{ margin: 0 }}>
@@ -98,19 +124,39 @@ export function Piece() {
           {total > 0 && <span className="meta tnum">Valeur : {formaterEuros(total)}</span>}
         </div>
 
-        {lignes && lignes.length === 0 && (
+        {/* Filtre de relecture par document. */}
+        <div className="dest-seg filtre" role="group" aria-label="Filtrer par document" style={{ marginBottom: 12 }}>
+          {(['tout', 'edl', 'inventaire'] as Filtre[]).map((f) => (
+            <button
+              key={f}
+              className="dest-opt"
+              aria-pressed={filtre === f}
+              onClick={() => setFiltre(f)}
+            >
+              {f === 'tout' ? 'Tout' : f === 'edl' ? 'EDL' : 'Inventaire'}
+            </button>
+          ))}
+        </div>
+
+        {nbTotal === 0 && (
           <p className="vide">Aucune ligne. Touchez + pour commencer la saisie.</p>
         )}
+        {nbTotal > 0 && visibles.length === 0 && (
+          <p className="vide">Aucune ligne dans ce filtre.</p>
+        )}
 
-        {lignes?.map((l, i) => (
-          <LigneItem
-            key={l.id}
-            ligne={l}
-            ouvertInitial={l.id === ligneCiblee}
-            peutMonter={i > 0}
-            peutDescendre={i < lignes.length - 1}
-          />
-        ))}
+        {visibles.map((l) => {
+          const i = rang.get(l.id) ?? 0
+          return (
+            <LigneItem
+              key={l.id}
+              ligne={l}
+              ouvertInitial={l.id === ligneCiblee}
+              peutMonter={i > 0}
+              peutDescendre={i < nbTotal - 1}
+            />
+          )
+        })}
       </div>
 
       <button className="fab" aria-label="Ajouter une ligne" onClick={() => setAjout(true)}>
@@ -123,6 +169,29 @@ export function Piece() {
           onAjouter={ajouterLigne}
           onFermer={() => setAjout(false)}
         />
+      )}
+
+      {bascule && (
+        <div className="feuille-fond" onClick={() => setBascule(false)}>
+          <div className="feuille" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Tout basculer">
+            <div className="feuille-tete">
+              <h2>Tout basculer en…</h2>
+              <button className="btn discret" onClick={() => setBascule(false)}>
+                Annuler
+              </button>
+            </div>
+            <div className="feuille-corps">
+              <p className="meta" style={{ marginTop: 0 }}>
+                Applique la destination à toutes les lignes de la pièce.
+              </p>
+              {(['edl', 'inventaire', 'les_deux', 'aucun'] as Destination[]).map((d) => (
+                <button key={d} className="suggestion" onClick={() => toutBasculer(d)}>
+                  <span style={{ flex: 1 }}>{DEST_LIBELLE[d]}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

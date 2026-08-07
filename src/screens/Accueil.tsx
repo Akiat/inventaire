@@ -141,8 +141,8 @@ export function Accueil() {
                 <Link className="btn" to={`/constat/${c.id}`}>
                   En-tête
                 </Link>
-                <Link className="btn" to={`/imprimer/${c.id}`}>
-                  Aperçu PDF
+                <Link className="btn" to={`/constat/${c.id}/documents`}>
+                  Documents
                 </Link>
                 <button className="btn-icone" aria-label="Supprimer" onClick={() => supprimer(c.id)}>
                   🗑

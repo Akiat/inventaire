@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../data/db'
-import type { Etat, Ligne } from '../data/types'
+import type { Destination, Etat, Ligne } from '../data/types'
 import { SelecteurEtat } from './SelecteurEtat'
+import { SelecteurDestination } from './SelecteurDestination'
 import { ChampPhoto } from './ChampPhoto'
+import { DEST_MARQUEUR, destinationDe } from '../data/destination'
 import {
   ajouterPhoto,
   deplacerLigne,
@@ -53,6 +55,10 @@ export function LigneItem({
   function setEtat(e: Etat) {
     majLigne(ligne.id, { etat: e })
   }
+  function setDestination(d: Destination) {
+    majLigne(ligne.id, { destination: d })
+  }
+  const dest = destinationDe(ligne)
   function setQte(q: number) {
     majLigne(ligne.id, { quantite: Math.max(1, q) })
   }
@@ -63,6 +69,7 @@ export function LigneItem({
         <span className={`point-etat ${ligne.etat}`} aria-hidden />
         <span className="desig">{ligne.designation}</span>
         {ligne.quantite > 1 && <span className="qte tnum">×{ligne.quantite}</span>}
+        <span className={`marque-dest ${dest === 'aucun' ? 'hors' : ''}`}>{DEST_MARQUEUR[dest]}</span>
         {nbPhotos > 0 && <span className="badge-photo">📷 {nbPhotos}</span>}
         <span aria-hidden>{ouvert ? '▾' : '▸'}</span>
       </button>
@@ -86,6 +93,9 @@ export function LigneItem({
               </button>
             </div>
           </div>
+
+          <div className="sous-titre">Document</div>
+          <SelecteurDestination valeur={dest} onChange={setDestination} />
 
           <div className="sous-titre">Photos</div>
           <ChampPhoto

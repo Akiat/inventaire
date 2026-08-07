@@ -77,8 +77,8 @@ export function Pieces() {
         titre={titre}
         retour="/"
         actions={
-          <Link className="btn discret" to={`/imprimer/${constatId}`}>
-            PDF
+          <Link className="btn discret" to={`/constat/${constatId}/documents`}>
+            Documents
           </Link>
         }
       />

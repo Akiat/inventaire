@@ -4,6 +4,7 @@ import { EnTeteConstat } from './screens/EnTeteConstat'
 import { Pieces } from './screens/Pieces'
 import { Piece } from './screens/Piece'
 import { Conformite } from './screens/Conformite'
+import { Documents } from './screens/Documents'
 import { Imprimer } from './print/Imprimer'
 
 export function App() {
@@ -14,7 +15,8 @@ export function App() {
       <Route path="/constat/:constatId/pieces" element={<Pieces />} />
       <Route path="/piece/:pieceId" element={<Piece />} />
       <Route path="/constat/:constatId/conformite" element={<Conformite />} />
-      <Route path="/imprimer/:constatId" element={<Imprimer />} />
+      <Route path="/constat/:constatId/documents" element={<Documents />} />
+      <Route path="/imprimer/:constatId/:doc" element={<Imprimer />} />
     </Routes>
   )
 }
