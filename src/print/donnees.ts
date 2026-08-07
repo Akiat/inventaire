@@ -4,7 +4,7 @@
 // une photo garde son numéro dans les deux documents ; chaque document
 // n'annexe que les photos de ses propres lignes.
 import { db } from '../data/db'
-import type { Cle, Constat, Ligne, Logement, Photo, Piece } from '../data/types'
+import type { Cle, Constat, Etat, Ligne, Logement, Photo, Piece } from '../data/types'
 import { evaluerMentions, evaluerMobilier, type LignePiece } from '../data/conformite'
 import { destinationDe, inclutEdl, inclutInventaire } from '../data/destination'
 import { totalValeur } from '../lib/valeur'
@@ -21,6 +21,10 @@ export interface LigneImpression {
   ligne: Ligne
   refsPhotos: string[]
   photos: Photo[] // pour le mode « vignettes dans les tableaux »
+  // Constat de sortie : comparaison avec l'entrée.
+  etatEntree?: Etat
+  modifie: boolean
+  photosEntree: Photo[]
 }
 
 export interface PieceImpression {
@@ -36,6 +40,7 @@ export interface MobilierImpression {
 
 export interface DonneesImpression {
   doc: DocType
+  estSortie: boolean
   constat: Constat
   logement: Logement | undefined
   pieces: PieceImpression[]
@@ -132,19 +137,31 @@ export async function chargerImpression(constatId: string, doc: DocType): Promis
   })
 
   // 2) Filtrage par document.
+  const estSortie = constat.type === 'sortie'
   const piecesImpr: PieceImpression[] = []
   const lignesPieceDoc: LignePiece[] = [] // pour la conformité et les valeurs
   for (const piece of pieces) {
     const lignes = (lignesParPiece.get(piece.id) ?? []).filter((l) => retientPourDoc(doc, l))
     if (lignes.length === 0) continue // pièce sans ligne pour ce document : omise
-    piecesImpr.push({
-      piece,
-      lignes: lignes.map((ligne) => ({
+    const lignesImpr: LigneImpression[] = []
+    for (const ligne of lignes) {
+      // Sortie : photos d'entrée (via la ligne d'origine) pour l'affichage « en regard ».
+      const photosEntree =
+        estSortie && ligne.ligneEntreeId
+          ? (await db.photos.where('ligneId').equals(ligne.ligneEntreeId).toArray()).sort(
+              (a, b) => a.createdAt - b.createdAt
+            )
+          : []
+      lignesImpr.push({
         ligne,
         refsPhotos: refsParLigne.get(ligne.id) ?? [],
         photos: photosParLigne.get(ligne.id) ?? [],
-      })),
-    })
+        etatEntree: ligne.etatEntree,
+        modifie: estSortie && ligne.etatEntree != null && ligne.etat !== ligne.etatEntree,
+        photosEntree,
+      })
+    }
+    piecesImpr.push({ piece, lignes: lignesImpr })
     for (const ligne of lignes) lignesPieceDoc.push({ ligne, piece })
   }
 
@@ -190,6 +207,7 @@ export async function chargerImpression(constatId: string, doc: DocType): Promis
 
   return {
     doc,
+    estSortie,
     constat,
     logement,
     pieces: piecesImpr,

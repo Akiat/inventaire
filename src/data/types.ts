@@ -74,6 +74,10 @@ export interface Constat {
   createdAt: number
   // Ajouté au lot 1. Absent sur les constats créés au lot 0 (traité comme {}).
   conformite?: Record<string, SurchargeMobilier>
+  // Lot 4 — constat de sortie :
+  constatEntreeId?: string // constat d'entrée cloné
+  dateConstatEntree?: string // date du constat d'entrée (mention obligatoire)
+  nouvelleAdresse?: string // nouvelle adresse du locataire (mention obligatoire)
 }
 
 export interface Piece {
@@ -97,6 +101,10 @@ export interface Ligne {
   valeur?: number
   observations?: string
   ordre: number
+  // Lot 4 — constat de sortie (présents sur les lignes d'un constat de sortie) :
+  etatEntree?: Etat // état relevé à l'entrée (figé au clonage)
+  ligneEntreeId?: string // ligne d'entrée d'origine (pour ses photos)
+  verifiee?: boolean // la ligne a été validée « Idem » ou modifiée
 }
 
 export interface Photo {

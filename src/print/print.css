@@ -186,6 +186,35 @@
   border: 1px solid #999;
 }
 
+/* Comparaison entrée / sortie (constat de sortie) */
+.impr tr.modifie td {
+  background: #faece9;
+}
+
+.impr .compare-photos {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.impr .compare-photos > div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.impr .compare-photos .lab {
+  font-size: 8pt;
+  font-weight: 700;
+  color: #555;
+  width: 40px;
+  flex: none;
+}
+
+.impr .compare-photos .rien {
+  color: #999;
+}
+
 /* Pied de paraphe : masqué à l'écran, répété à chaque page à l'impression */
 .impr .pied-paraphe {
   display: none;

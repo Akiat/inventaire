@@ -10,9 +10,11 @@ import {
   ajouterPhoto,
   deplacerLigne,
   dupliquerLigne,
+  etatLibelle,
   majLigne,
   supprimerLigne,
   supprimerPhoto,
+  validerIdem,
 } from '../data/actions'
 import { useDebouncedCallback } from '../lib/hooks'
 
@@ -23,11 +25,13 @@ export function LigneItem({
   ouvertInitial = false,
   peutMonter,
   peutDescendre,
+  sortie = false,
 }: {
   ligne: Ligne
   ouvertInitial?: boolean
   peutMonter: boolean
   peutDescendre: boolean
+  sortie?: boolean
 }) {
   const [ouvert, setOuvert] = useState(ouvertInitial)
   const [details, setDetails] = useState(
@@ -53,8 +57,10 @@ export function LigneItem({
   }, 300)
 
   function setEtat(e: Etat) {
-    majLigne(ligne.id, { etat: e })
+    // En sortie, choisir un état vaut vérification de la ligne.
+    majLigne(ligne.id, sortie ? { etat: e, verifiee: true } : { etat: e })
   }
+  const modifie = sortie && ligne.etatEntree != null && ligne.etat !== ligne.etatEntree
   function setDestination(d: Destination) {
     majLigne(ligne.id, { destination: d })
   }
@@ -63,20 +69,36 @@ export function LigneItem({
     majLigne(ligne.id, { quantite: Math.max(1, q) })
   }
 
+  const aVerifier = sortie && !ligne.verifiee
+
   return (
-    <div className="ligne">
-      <button className="ligne-tete" onClick={() => setOuvert((o) => !o)} aria-expanded={ouvert}>
-        <span className={`point-etat ${ligne.etat}`} aria-hidden />
-        <span className="desig">{ligne.designation}</span>
-        {ligne.quantite > 1 && <span className="qte tnum">×{ligne.quantite}</span>}
-        <span className={`marque-dest ${dest === 'aucun' ? 'hors' : ''}`}>{DEST_MARQUEUR[dest]}</span>
-        {nbPhotos > 0 && <span className="badge-photo">📷 {nbPhotos}</span>}
-        <span aria-hidden>{ouvert ? '▾' : '▸'}</span>
-      </button>
+    <div className={`ligne ${aVerifier ? 'a-verifier' : ''} ${modifie ? 'modifie' : ''}`}>
+      <div className="ligne-rangee">
+        <button className="ligne-tete" onClick={() => setOuvert((o) => !o)} aria-expanded={ouvert}>
+          <span className={`point-etat ${ligne.etat}`} aria-hidden />
+          <span className="desig">{ligne.designation}</span>
+          {ligne.quantite > 1 && <span className="qte tnum">×{ligne.quantite}</span>}
+          {sortie && !ligne.verifiee && <span className="marque-verif">à vérifier</span>}
+          {sortie && ligne.verifiee && modifie && <span className="marque-modif">modifié</span>}
+          <span className={`marque-dest ${dest === 'aucun' ? 'hors' : ''}`}>{DEST_MARQUEUR[dest]}</span>
+          {nbPhotos > 0 && <span className="badge-photo">📷 {nbPhotos}</span>}
+          <span aria-hidden>{ouvert ? '▾' : '▸'}</span>
+        </button>
+        {sortie && !ligne.verifiee && (
+          <button className="btn-idem" onClick={() => validerIdem(ligne.id)} aria-label="Identique à l'entrée">
+            Idem
+          </button>
+        )}
+      </div>
 
       {ouvert && (
         <div className="ligne-corps">
-          <div className="sous-titre">État</div>
+          {sortie && ligne.etatEntree != null && (
+            <p className="rappel-entree">
+              État à l'entrée : <strong>{etatLibelle(ligne.etatEntree)}</strong>
+            </p>
+          )}
+          <div className="sous-titre">{sortie ? 'État à la sortie' : 'État'}</div>
           <SelecteurEtat valeur={ligne.etat} onChange={setEtat} />
 
           <div className="entre" style={{ marginTop: 14 }}>

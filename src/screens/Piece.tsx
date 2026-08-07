@@ -22,8 +22,14 @@ export function Piece() {
   const [ajout, setAjout] = useState(false)
   const [filtre, setFiltre] = useState<Filtre>('tout')
   const [bascule, setBascule] = useState(false)
+  const [verifOnly, setVerifOnly] = useState(false)
 
   const piece = useLiveQuery(() => db.pieces.get(pieceId), [pieceId])
+  const constat = useLiveQuery(
+    () => (piece ? db.constats.get(piece.constatId) : undefined),
+    [piece?.constatId]
+  )
+  const sortie = constat?.type === 'sortie'
   const lignes = useLiveQuery(
     () => db.lignes.where('pieceId').equals(pieceId).sortBy('ordre'),
     [pieceId]
@@ -67,11 +73,13 @@ export function Piece() {
 
   // Filtrage d'affichage (relecture avant génération d'un document).
   const visibles = (lignes ?? []).filter((l) => {
+    if (verifOnly && l.verifiee) return false
     const d = destinationDe(l)
     if (filtre === 'edl') return inclutEdl(d)
     if (filtre === 'inventaire') return inclutInventaire(d)
     return true
   })
+  const nbAVerifier = sortie ? (lignes ?? []).filter((l) => !l.verifiee).length : 0
   // Position dans l'ordre complet (le réordonnancement agit sur les vrais voisins).
   const rang = new Map((lignes ?? []).map((l, i) => [l.id, i]))
   const nbTotal = lignes?.length ?? 0
@@ -138,6 +146,18 @@ export function Piece() {
           ))}
         </div>
 
+        {/* Sortie : filtre « non encore vérifié ». */}
+        {sortie && (
+          <button
+            className={`btn ${verifOnly ? 'primaire' : ''}`}
+            style={{ width: '100%', marginBottom: 12 }}
+            aria-pressed={verifOnly}
+            onClick={() => setVerifOnly((v) => !v)}
+          >
+            {verifOnly ? '✓ ' : ''}À vérifier seulement{nbAVerifier > 0 ? ` (${nbAVerifier})` : ''}
+          </button>
+        )}
+
         {nbTotal === 0 && (
           <p className="vide">Aucune ligne. Touchez + pour commencer la saisie.</p>
         )}
@@ -154,6 +174,7 @@ export function Piece() {
               ouvertInitial={l.id === ligneCiblee}
               peutMonter={i > 0}
               peutDescendre={i < nbTotal - 1}
+              sortie={sortie}
             />
           )
         })}

@@ -214,13 +214,16 @@ export function evaluerMentions(
   res.push({ id: 'signatures', libelle: 'Emplacement des signatures', satisfait: true })
 
   // En sortie : nouvelle adresse du locataire + date du constat d'entrée.
-  // Champs introduits au lot 4 : pour l'instant signalés à compléter.
   if (constat.type === 'sortie') {
+    const ok = aUneValeur(constat.nouvelleAdresse) && aUneValeur(constat.dateConstatEntree)
+    const manques: string[] = []
+    if (!aUneValeur(constat.dateConstatEntree)) manques.push('date du constat d’entrée')
+    if (!aUneValeur(constat.nouvelleAdresse)) manques.push('nouvelle adresse du locataire')
     res.push({
       id: 'sortie',
       libelle: 'Nouvelle adresse et date du constat d’entrée',
-      satisfait: false,
-      detail: 'À compléter (constat de sortie, lot 4).',
+      satisfait: ok,
+      detail: ok ? undefined : `Manque : ${manques.join(', ')}.`,
     })
   }
 

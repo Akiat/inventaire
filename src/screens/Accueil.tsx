@@ -5,6 +5,7 @@ import { db } from '../data/db'
 import {
   creerConstat,
   creerConstatDepuisModele,
+  creerConstatSortie,
   supprimerConstat,
   supprimerModele,
 } from '../data/actions'
@@ -59,6 +60,11 @@ export function Accueil() {
   async function supprimer(id: string) {
     if (!confirm('Supprimer ce constat et toutes ses données ?')) return
     await supprimerConstat(id)
+  }
+
+  async function creerSortie(entreeId: string) {
+    const id = await creerConstatSortie(entreeId)
+    if (id) nav(`/constat/${id}/pieces`)
   }
 
   return (
@@ -148,6 +154,15 @@ export function Accueil() {
                   🗑
                 </button>
               </div>
+              {c.type === 'entree' && (
+                <button
+                  className="btn discret pleine"
+                  style={{ marginTop: 8 }}
+                  onClick={() => creerSortie(c.id)}
+                >
+                  → Créer le constat de sortie
+                </button>
+              )}
             </div>
           )
         })}

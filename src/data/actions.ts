@@ -42,6 +42,70 @@ export async function creerConstat(type: TypeConstat): Promise<string> {
   return id
 }
 
+// Crée un constat de sortie par clonage d'un constat d'entrée : logement,
+// pièces et lignes recopiés ; l'état d'entrée de chaque ligne est figé dans
+// `etatEntree`, l'état de sortie démarre identique et reste à vérifier.
+export async function creerConstatSortie(constatEntreeId: string): Promise<string | null> {
+  const entree = await db.constats.get(constatEntreeId)
+  if (!entree) return null
+  const logementEntree = await db.logements.get(entree.logementId)
+  const sortieId = uid()
+  const logementId = uid()
+  await db.transaction('rw', db.logements, db.constats, db.pieces, db.lignes, async () => {
+    await db.logements.add(
+      logementEntree
+        ? { ...logementEntree, id: logementId }
+        : { id: logementId, adresse: '', complement: '', surface: '', lots: '', bailleurNom: '', bailleurAdresse: '' }
+    )
+    await db.constats.add({
+      id: sortieId,
+      logementId,
+      type: 'sortie',
+      date: new Date().toISOString().slice(0, 10),
+      locataires: [...entree.locataires],
+      mandataire: entree.mandataire,
+      // Compteurs : on garde type et numéro, l'index est un nouveau relevé.
+      compteurs: entree.compteurs.map((c) => ({ type: c.type, numero: c.numero, index: '' })),
+      cles: entree.cles.map((c) => ({ ...c })),
+      createdAt: Date.now(),
+      constatEntreeId,
+      dateConstatEntree: entree.date,
+      nouvelleAdresse: '',
+    })
+    const pieces = await db.pieces.where('constatId').equals(constatEntreeId).sortBy('ordre')
+    for (const p of pieces) {
+      const newPieceId = uid()
+      await db.pieces.add({ id: newPieceId, constatId: sortieId, nom: p.nom, type: p.type, ordre: p.ordre })
+      const lignes = await db.lignes.where('pieceId').equals(p.id).sortBy('ordre')
+      for (const l of lignes) {
+        await db.lignes.add({
+          id: uid(),
+          pieceId: newPieceId,
+          categorie: l.categorie,
+          designation: l.designation,
+          quantite: l.quantite,
+          etat: l.etat, // démarre à l'état d'entrée
+          etatEntree: l.etat, // figé pour la comparaison
+          destination: l.destination ?? 'les_deux',
+          marqueModele: l.marqueModele,
+          numeroSerie: l.numeroSerie,
+          valeur: l.valeur,
+          observations: l.observations,
+          ordre: l.ordre,
+          ligneEntreeId: l.id,
+          verifiee: false,
+        })
+      }
+    }
+  })
+  return sortieId
+}
+
+// Valide une ligne de sortie « Idem » : conforme à l'entrée, sans modification.
+export async function validerIdem(ligneId: string): Promise<void> {
+  await db.lignes.update(ligneId, { verifiee: true })
+}
+
 function suivant<T extends { ordre: number }>(items: T[]): number {
   return items.reduce((max, it) => Math.max(max, it.ordre), -1) + 1
 }

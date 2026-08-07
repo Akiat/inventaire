@@ -53,6 +53,8 @@ function FormConstat({ constat }: { constat: Constat }) {
     constat.locataires.length ? constat.locataires : ['']
   )
   const [mandataire, setMandataire] = useState(constat.mandataire ?? '')
+  const [nouvelleAdresse, setNouvelleAdresse] = useState(constat.nouvelleAdresse ?? '')
+  const [dateEntree, setDateEntree] = useState(constat.dateConstatEntree ?? '')
 
   const ecrire = useDebouncedCallback((patch: Partial<Constat>) => {
     db.constats.update(constat.id, patch)
@@ -144,6 +146,35 @@ function FormConstat({ constat }: { constat: Constat }) {
           }}
         />
       </label>
+
+      {/* Mentions propres au constat de sortie (décret 2016-382). */}
+      {type === 'sortie' && (
+        <>
+          <label className="champ">
+            <span className="lib">Date du constat d'entrée</span>
+            <input
+              type="date"
+              value={dateEntree}
+              onChange={(e) => {
+                setDateEntree(e.target.value)
+                db.constats.update(constat.id, { dateConstatEntree: e.target.value })
+              }}
+            />
+          </label>
+          <label className="champ">
+            <span className="lib">Nouvelle adresse du locataire</span>
+            <input
+              type="text"
+              value={nouvelleAdresse}
+              placeholder="Adresse après départ"
+              onChange={(e) => {
+                setNouvelleAdresse(e.target.value)
+                ecrire({ nouvelleAdresse: e.target.value })
+              }}
+            />
+          </label>
+        </>
+      )}
     </section>
   )
 }

@@ -360,14 +360,68 @@ a:focus-visible {
   overflow: hidden;
 }
 
+.ligne-rangee {
+  display: flex;
+  align-items: stretch;
+}
+
 .ligne-tete {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 12px 14px;
   min-height: var(--tap);
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   text-align: left;
+}
+
+/* Bouton « Idem » d'une ligne de sortie (validation sans modification) */
+.btn-idem {
+  flex: none;
+  padding: 0 16px;
+  font-weight: 700;
+  color: var(--accent);
+  border-left: 1px solid var(--rule);
+}
+
+.btn-idem:active {
+  background: #efeee9;
+}
+
+/* Repères de sortie */
+.ligne.a-verifier {
+  border-left: 4px solid var(--usage);
+}
+
+.ligne.modifie {
+  border-left: 4px solid var(--mauvais);
+}
+
+.marque-verif,
+.marque-modif {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 1px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.marque-verif {
+  color: var(--usage);
+  background: #f7edd8;
+}
+
+.marque-modif {
+  color: var(--mauvais);
+  background: #f6e4e1;
+}
+
+.rappel-entree {
+  margin: 4px 0 0;
+  font-size: 0.88rem;
+  color: var(--absent);
 }
 
 .ligne-tete .desig {
