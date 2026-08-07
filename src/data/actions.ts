@@ -1,7 +1,18 @@
 // Actions métier : création, duplication, suppression en cascade.
 // Toute écriture passe par ici pour rester cohérente (ordres, cascades, photos).
+import type { Table, UpdateSpec } from 'dexie'
 import { db, uid } from './db'
-import type { Categorie, Constat, Etat, Ligne, Photo, TypeConstat, TypePiece } from './types'
+import type {
+  Categorie,
+  Constat,
+  Etat,
+  Ligne,
+  ModelePiece,
+  Photo,
+  Piece,
+  TypeConstat,
+  TypePiece,
+} from './types'
 import { metaType } from './catalogue'
 
 export async function creerConstat(type: TypeConstat): Promise<string> {
@@ -89,6 +100,58 @@ export async function supprimerLigne(ligneId: string): Promise<void> {
   })
 }
 
+// Duplique une pièce et toutes ses lignes (sans les photos : ce sont des
+// preuves propres à un objet donné, les copier induirait en erreur).
+export async function dupliquerPiece(pieceId: string): Promise<string | null> {
+  const nouvelId = uid()
+  let ok = false
+  await db.transaction('rw', db.pieces, db.lignes, async () => {
+    const src = await db.pieces.get(pieceId)
+    if (!src) return
+    const soeurs = await db.pieces.where('constatId').equals(src.constatId).toArray()
+    await db.pieces.add({
+      ...src,
+      id: nouvelId,
+      nom: `${src.nom} (copie)`,
+      ordre: suivant(soeurs),
+    })
+    const lignes = await db.lignes.where('pieceId').equals(pieceId).sortBy('ordre')
+    for (const l of lignes) {
+      await db.lignes.add({ ...l, id: uid(), pieceId: nouvelId })
+    }
+    ok = true
+  })
+  return ok ? nouvelId : null
+}
+
+// Réordonnancement par échange d'`ordre` avec le voisin (boutons haut/bas).
+async function deplacer<T extends { id: string; ordre: number }>(
+  table: Table<T, string>,
+  filtre: () => Promise<T[]>,
+  id: string,
+  sens: -1 | 1
+): Promise<void> {
+  await db.transaction('rw', table, async () => {
+    const items = (await filtre()).sort((a, b) => a.ordre - b.ordre)
+    const i = items.findIndex((x) => x.id === id)
+    const j = i + sens
+    if (i < 0 || j < 0 || j >= items.length) return
+    const a = items[i]
+    const b = items[j]
+    // `ordre` existe sur tout T contraint ici ; le cast contourne la généricité.
+    await table.update(a.id, { ordre: b.ordre } as unknown as UpdateSpec<T>)
+    await table.update(b.id, { ordre: a.ordre } as unknown as UpdateSpec<T>)
+  })
+}
+
+export function deplacerPiece(piece: Piece, sens: -1 | 1): Promise<void> {
+  return deplacer(db.pieces, () => db.pieces.where('constatId').equals(piece.constatId).toArray(), piece.id, sens)
+}
+
+export function deplacerLigne(ligne: Ligne, sens: -1 | 1): Promise<void> {
+  return deplacer(db.lignes, () => db.lignes.where('pieceId').equals(ligne.pieceId).toArray(), ligne.id, sens)
+}
+
 export async function supprimerPiece(pieceId: string): Promise<void> {
   await db.transaction('rw', db.pieces, db.lignes, db.photos, async () => {
     const lignes = await db.lignes.where('pieceId').equals(pieceId).toArray()
@@ -141,6 +204,62 @@ export async function majLigne(ligneId: string, patch: Partial<Ligne>): Promise<
 
 export function etatLibelle(etat: Etat): string {
   return { neuf: 'Neuf', bon: 'Bon', usage: 'Usage', mauvais: 'Mauvais', absent: 'Absent' }[etat]
+}
+
+// --- Modèles de constat (lot 2) ---
+
+// Enregistre la structure d'un constat (pièces + lignes) comme modèle réutilisable.
+// Sans photos, sans état, sans données personnelles : un squelette de saisie.
+export async function enregistrerModele(constatId: string, nom: string): Promise<string> {
+  const id = uid()
+  await db.transaction('rw', db.pieces, db.lignes, db.modeles, async () => {
+    const pieces = await db.pieces.where('constatId').equals(constatId).sortBy('ordre')
+    const modelePieces: ModelePiece[] = []
+    for (const p of pieces) {
+      const lignes = await db.lignes.where('pieceId').equals(p.id).sortBy('ordre')
+      modelePieces.push({
+        nom: p.nom,
+        type: p.type,
+        ordre: p.ordre,
+        lignes: lignes.map((l) => ({
+          categorie: l.categorie,
+          designation: l.designation,
+          quantite: l.quantite,
+          ordre: l.ordre,
+        })),
+      })
+    }
+    await db.modeles.add({ id, nom: nom.trim() || 'Modèle', createdAt: Date.now(), pieces: modelePieces })
+  })
+  return id
+}
+
+export async function creerConstatDepuisModele(modeleId: string, type: TypeConstat): Promise<string> {
+  const modele = await db.modeles.get(modeleId)
+  const constatId = await creerConstat(type)
+  if (!modele) return constatId
+  await db.transaction('rw', db.pieces, db.lignes, async () => {
+    for (const mp of modele.pieces) {
+      const pieceId = uid()
+      await db.pieces.add({ id: pieceId, constatId, nom: mp.nom, type: mp.type, ordre: mp.ordre })
+      for (const ml of mp.lignes) {
+        await db.lignes.add({
+          id: uid(),
+          pieceId,
+          categorie: ml.categorie,
+          designation: ml.designation,
+          quantite: ml.quantite,
+          etat: 'bon', // état réinitialisé : le modèle ne présume pas de l'état
+          ordre: ml.ordre,
+        })
+      }
+    }
+  })
+  return constatId
+}
+
+export async function supprimerModele(id: string): Promise<void> {
+  await db.modeles.delete(id)
 }
 
 // --- Conformité (lot 1) : surcharge manuelle du rattachement mobilier ---

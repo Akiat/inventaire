@@ -599,6 +599,33 @@ a:focus-visible {
   gap: 10px;
 }
 
+/* ---- Réordonnancement (boutons haut/bas) ---- */
+.reorder {
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--rule);
+  flex: none;
+}
+
+.reorder button {
+  width: 46px;
+  height: 43px;
+  font-size: 1.1rem;
+  background: var(--surface);
+}
+
+.reorder button:first-child {
+  border-bottom: 1px solid var(--rule);
+}
+
+.reorder button:active {
+  background: #efeee9;
+}
+
+.reorder button:disabled {
+  color: var(--rule);
+}
+
 /* ---- Conformité ---- */
 .conf-item {
   background: var(--surface);

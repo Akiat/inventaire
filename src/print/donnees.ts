@@ -2,6 +2,7 @@
 import { db } from '../data/db'
 import type { Constat, Ligne, Logement, Photo, Piece } from '../data/types'
 import { evaluerMentions, evaluerMobilier, type LignePiece } from '../data/conformite'
+import { totalValeur } from '../lib/valeur'
 
 export interface PhotoNumerotee {
   photo: Photo
@@ -34,6 +35,8 @@ export interface DonneesImpression {
   nbPhotos: number
   mobilier: MobilierImpression[]
   avertissements: string[] // points manquants (mobilier + mentions), bandeau
+  valeurs: { nom: string; total: number }[] // valeur indicative par pièce (> 0)
+  valeurGlobale: number
 }
 
 function formaterDate(iso: string): string {
@@ -128,6 +131,12 @@ export async function chargerImpression(constatId: string): Promise<DonneesImpre
     ...resMentions.filter((r) => !r.satisfait).map((r) => r.libelle),
   ]
 
+  // Valeurs indicatives par pièce (inventaire assurance), pièces à total > 0.
+  const valeurs = piecesImpr
+    .map(({ piece, lignes }) => ({ nom: piece.nom, total: totalValeur(lignes.map((l) => l.ligne)) }))
+    .filter((v) => v.total > 0)
+  const valeurGlobale = valeurs.reduce((s, v) => s + v.total, 0)
+
   return {
     constat,
     logement,
@@ -137,6 +146,8 @@ export async function chargerImpression(constatId: string): Promise<DonneesImpre
     nbPhotos: annexe.length,
     mobilier,
     avertissements,
+    valeurs,
+    valeurGlobale,
   }
 }
 

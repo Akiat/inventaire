@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import type { Photo } from '../data/types'
 import { etatLibelle } from '../data/actions'
+import { formaterEuros } from '../lib/valeur'
 import { useBlobUrl } from '../lib/hooks'
 import { chargerImpression, formaterDate, type DonneesImpression } from './donnees'
 import './print.css'
@@ -33,7 +34,8 @@ export function Imprimer() {
       </div>
     )
 
-  const { constat, logement, pieces, compteurs, annexe, nbPhotos, mobilier, avertissements } = data
+  const { constat, logement, pieces, compteurs, annexe, nbPhotos, mobilier, avertissements, valeurs, valeurGlobale } =
+    data
   const titre = constat.type === 'entree' ? "Constat d'état des lieux d'entrée" : "Constat d'état des lieux de sortie"
   const locataires = constat.locataires.filter((l) => l.trim())
 
@@ -197,6 +199,40 @@ export function Imprimer() {
           </tbody>
         </table>
       </section>
+
+      {/* Valeurs indicatives (inventaire assurance), si renseignées. */}
+      {valeurs.length > 0 && (
+        <section>
+          <h2>Valeurs indicatives</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Pièce</th>
+                <th style={{ width: '30%' }}>Valeur</th>
+              </tr>
+            </thead>
+            <tbody>
+              {valeurs.map((v) => (
+                <tr key={v.nom}>
+                  <td>{v.nom}</td>
+                  <td className="tnum">{formaterEuros(v.total)}</td>
+                </tr>
+              ))}
+              <tr>
+                <td>
+                  <strong>Total</strong>
+                </td>
+                <td className="tnum">
+                  <strong>{formaterEuros(valeurGlobale)}</strong>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <p className="meta" style={{ fontSize: '9pt', color: '#444', margin: 0 }}>
+            Estimations indicatives, hors valeur d'usage réelle.
+          </p>
+        </section>
+      )}
 
       {/* Signatures */}
       <div className="signatures">

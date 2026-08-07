@@ -2,7 +2,12 @@ import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../data/db'
-import { creerConstat, supprimerConstat } from '../data/actions'
+import {
+  creerConstat,
+  creerConstatDepuisModele,
+  supprimerConstat,
+  supprimerModele,
+} from '../data/actions'
 import { exporterSauvegarde, importerSauvegarde } from '../lib/backup'
 
 function formaterDate(iso: string): string {
@@ -18,10 +23,21 @@ export function Accueil() {
 
   const constats = useLiveQuery(() => db.constats.orderBy('createdAt').reverse().toArray(), [])
   const logements = useLiveQuery(() => db.logements.toArray(), [])
+  const modeles = useLiveQuery(() => db.modeles.orderBy('createdAt').reverse().toArray(), [])
 
   async function nouveau() {
     const id = await creerConstat('entree')
     nav(`/constat/${id}`)
+  }
+
+  async function nouveauDepuisModele(modeleId: string) {
+    const id = await creerConstatDepuisModele(modeleId, 'entree')
+    nav(`/constat/${id}`)
+  }
+
+  async function supprimerUnModele(id: string, nom: string) {
+    if (!confirm(`Supprimer le modèle « ${nom} » ?`)) return
+    await supprimerModele(id)
   }
 
   async function surImport(fichier: File | undefined) {
@@ -73,6 +89,36 @@ export function Accueil() {
           />
           {msg && <p className="meta">{msg}</p>}
         </div>
+
+        {modeles && modeles.length > 0 && (
+          <>
+            <h2 className="sous-titre">Modèles</h2>
+            {modeles.map((m) => (
+              <div key={m.id} className="carte">
+                <div className="entre">
+                  <div>
+                    <div className="titre-carte">☆ {m.nom}</div>
+                    <div className="meta tnum">
+                      {m.pieces.length} pièce{m.pieces.length > 1 ? 's' : ''}
+                    </div>
+                  </div>
+                  <div className="ligne-champs" style={{ flex: 'none' }}>
+                    <button className="btn" onClick={() => nouveauDepuisModele(m.id)}>
+                      Utiliser
+                    </button>
+                    <button
+                      className="btn-icone"
+                      aria-label="Supprimer le modèle"
+                      onClick={() => supprimerUnModele(m.id, m.nom)}
+                    >
+                      🗑
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </>
+        )}
 
         <h2 className="sous-titre">Constats</h2>
 

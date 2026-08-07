@@ -102,3 +102,26 @@ export interface Photo {
   blob: Blob
   createdAt: number
 }
+
+// --- Modèles de constat réutilisables (lot 2) ---
+// Squelette sans photos ni données personnelles : pièces et lignes seulement.
+export interface ModeleLigne {
+  categorie: Categorie
+  designation: string
+  quantite: number
+  ordre: number
+}
+
+export interface ModelePiece {
+  nom: string
+  type: TypePiece
+  ordre: number
+  lignes: ModeleLigne[]
+}
+
+export interface Modele {
+  id: string
+  nom: string
+  createdAt: number
+  pieces: ModelePiece[]
+}

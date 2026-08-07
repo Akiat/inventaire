@@ -2,7 +2,7 @@
 // Laid et volumineux, assumé : c'est l'assurance contre une purge du stockage.
 // L'import remplace tout le contenu après confirmation (côté appelant).
 import { db } from '../data/db'
-import type { Logement, Constat, Piece, Ligne, Photo } from '../data/types'
+import type { Logement, Constat, Piece, Ligne, Photo, Modele } from '../data/types'
 
 interface PhotoSerialisee {
   id: string
@@ -23,6 +23,7 @@ interface Sauvegarde {
   pieces: Piece[]
   lignes: Ligne[]
   photos: PhotoSerialisee[]
+  modeles?: Modele[] // ajouté au lot 2 ; absent des sauvegardes antérieures
 }
 
 function blobEnBase64(blob: Blob): Promise<string> {
@@ -46,12 +47,13 @@ function base64EnBlob(base64: string, type: string): Blob {
 }
 
 export async function exporterSauvegarde(): Promise<void> {
-  const [logements, constats, pieces, lignes, photos] = await Promise.all([
+  const [logements, constats, pieces, lignes, photos, modeles] = await Promise.all([
     db.logements.toArray(),
     db.constats.toArray(),
     db.pieces.toArray(),
     db.lignes.toArray(),
     db.photos.toArray(),
+    db.modeles.toArray(),
   ])
 
   const photosSerialisees: PhotoSerialisee[] = await Promise.all(
@@ -75,6 +77,7 @@ export async function exporterSauvegarde(): Promise<void> {
     pieces,
     lignes,
     photos: photosSerialisees,
+    modeles,
   }
 
   const blob = new Blob([JSON.stringify(sauvegarde)], { type: 'application/json' })
@@ -105,18 +108,20 @@ export async function importerSauvegarde(fichier: File): Promise<void> {
     blob: base64EnBlob(p.base64, p.type),
   }))
 
-  await db.transaction('rw', db.logements, db.constats, db.pieces, db.lignes, db.photos, async () => {
+  await db.transaction('rw', [db.logements, db.constats, db.pieces, db.lignes, db.photos, db.modeles], async () => {
     await Promise.all([
       db.logements.clear(),
       db.constats.clear(),
       db.pieces.clear(),
       db.lignes.clear(),
       db.photos.clear(),
+      db.modeles.clear(),
     ])
     await db.logements.bulkAdd(data.logements ?? [])
     await db.constats.bulkAdd(data.constats ?? [])
     await db.pieces.bulkAdd(data.pieces ?? [])
     await db.lignes.bulkAdd(data.lignes ?? [])
     await db.photos.bulkAdd(photos)
+    await db.modeles.bulkAdd(data.modeles ?? [])
   })
 }

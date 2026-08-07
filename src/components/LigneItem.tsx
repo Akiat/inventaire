@@ -4,14 +4,37 @@ import { db } from '../data/db'
 import type { Etat, Ligne } from '../data/types'
 import { SelecteurEtat } from './SelecteurEtat'
 import { ChampPhoto } from './ChampPhoto'
-import { ajouterPhoto, dupliquerLigne, majLigne, supprimerLigne, supprimerPhoto } from '../data/actions'
+import {
+  ajouterPhoto,
+  deplacerLigne,
+  dupliquerLigne,
+  majLigne,
+  supprimerLigne,
+  supprimerPhoto,
+} from '../data/actions'
 import { useDebouncedCallback } from '../lib/hooks'
 
 // Une ligne d'inventaire : repliée (résumé) ou dépliée (édition complète).
 // Tout se persiste au geste ; l'état et la quantité sans validation.
-export function LigneItem({ ligne }: { ligne: Ligne }) {
-  const [ouvert, setOuvert] = useState(false)
+export function LigneItem({
+  ligne,
+  ouvertInitial = false,
+  peutMonter,
+  peutDescendre,
+}: {
+  ligne: Ligne
+  ouvertInitial?: boolean
+  peutMonter: boolean
+  peutDescendre: boolean
+}) {
+  const [ouvert, setOuvert] = useState(ouvertInitial)
+  const [details, setDetails] = useState(
+    !!(ligne.marqueModele || ligne.numeroSerie || ligne.valeur)
+  )
   const [obs, setObs] = useState(ligne.observations ?? '')
+  const [marque, setMarque] = useState(ligne.marqueModele ?? '')
+  const [serie, setSerie] = useState(ligne.numeroSerie ?? '')
+  const [valeur, setValeur] = useState(ligne.valeur != null ? String(ligne.valeur) : '')
 
   const photos = useLiveQuery(
     () => db.photos.where('ligneId').equals(ligne.id).toArray(),
@@ -19,8 +42,12 @@ export function LigneItem({ ligne }: { ligne: Ligne }) {
   )
   const nbPhotos = photos?.length ?? 0
 
-  const ecrireObs = useDebouncedCallback((v: string) => {
-    majLigne(ligne.id, { observations: v })
+  const ecrireObs = useDebouncedCallback((v: string) => majLigne(ligne.id, { observations: v }), 300)
+  const ecrireMarque = useDebouncedCallback((v: string) => majLigne(ligne.id, { marqueModele: v }), 300)
+  const ecrireSerie = useDebouncedCallback((v: string) => majLigne(ligne.id, { numeroSerie: v }), 300)
+  const ecrireValeur = useDebouncedCallback((v: string) => {
+    const n = parseFloat(v.replace(',', '.'))
+    majLigne(ligne.id, { valeur: isNaN(n) ? undefined : n })
   }, 300)
 
   function setEtat(e: Etat) {
@@ -79,7 +106,63 @@ export function LigneItem({ ligne }: { ligne: Ligne }) {
             }}
           />
 
-          <div className="ligne-champs" style={{ marginTop: 12 }}>
+          {/* Champs repliés par défaut : marque/modèle, n° de série, valeur. */}
+          {!details ? (
+            <button className="btn discret" style={{ marginTop: 10 }} onClick={() => setDetails(true)}>
+              + Détails (marque, n° série, valeur)
+            </button>
+          ) : (
+            <>
+              <label className="champ" style={{ marginTop: 10, marginBottom: 10 }}>
+                <span className="lib">Marque / modèle</span>
+                <input
+                  type="text"
+                  value={marque}
+                  onChange={(e) => {
+                    setMarque(e.target.value)
+                    ecrireMarque(e.target.value)
+                  }}
+                />
+              </label>
+              <div className="ligne-champs">
+                <label className="champ" style={{ marginBottom: 10 }}>
+                  <span className="lib">N° de série</span>
+                  <input
+                    type="text"
+                    value={serie}
+                    onChange={(e) => {
+                      setSerie(e.target.value)
+                      ecrireSerie(e.target.value)
+                    }}
+                  />
+                </label>
+                <label className="champ" style={{ marginBottom: 10 }}>
+                  <span className="lib">Valeur (€)</span>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    className="tnum"
+                    value={valeur}
+                    onChange={(e) => {
+                      setValeur(e.target.value)
+                      ecrireValeur(e.target.value)
+                    }}
+                  />
+                </label>
+              </div>
+            </>
+          )}
+
+          <div className="entre" style={{ marginTop: 12 }}>
+            <div className="stepper" role="group" aria-label="Déplacer la ligne">
+              <button aria-label="Monter" disabled={!peutMonter} onClick={() => deplacerLigne(ligne, -1)}>
+                ↑
+              </button>
+              <button aria-label="Descendre" disabled={!peutDescendre} onClick={() => deplacerLigne(ligne, 1)}>
+                ↓
+              </button>
+            </div>
             <button className="btn" onClick={() => dupliquerLigne(ligne.id)}>
               Dupliquer
             </button>

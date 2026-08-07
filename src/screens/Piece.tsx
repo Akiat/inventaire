@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../data/db'
-import { creerLigne, supprimerPiece } from '../data/actions'
+import { creerLigne, dupliquerPiece, supprimerPiece } from '../data/actions'
 import type { Categorie } from '../data/types'
 import { BarreTitre } from '../components/BarreTitre'
 import { FeuilleAjout } from '../components/FeuilleAjout'
 import { LigneItem } from '../components/LigneItem'
 import { enrichir } from '../lib/catalogueLocal'
 import { useDebouncedCallback } from '../lib/hooks'
+import { formaterEuros, totalValeur } from '../lib/valeur'
 
 export function Piece() {
   const { pieceId = '' } = useParams()
+  const [params] = useSearchParams()
+  const ligneCiblee = params.get('ligne') // recherche globale : ouvre cette ligne
   const nav = useNavigate()
   const [ajout, setAjout] = useState(false)
 
@@ -39,11 +42,17 @@ export function Piece() {
   }
 
   const retour = `/constat/${piece.constatId}/pieces`
+  const total = totalValeur(lignes ?? [])
 
   async function ajouterLigne(designation: string, categorie: Categorie) {
     await creerLigne(pieceId, designation, categorie)
     // Frappe libre → enrichit le catalogue local du type de pièce.
     if (piece) enrichir(piece.type, designation)
+  }
+
+  async function dupliquer() {
+    const id = await dupliquerPiece(pieceId)
+    if (id) nav(`/piece/${id}`)
   }
 
   return (
@@ -78,16 +87,29 @@ export function Piece() {
           />
         </label>
 
-        <h2 className="sous-titre">
-          Lignes {lignes ? `(${lignes.length})` : ''}
-        </h2>
+        <button className="btn pleine" onClick={dupliquer} style={{ marginBottom: 14 }}>
+          ⧉ Dupliquer la pièce
+        </button>
+
+        <div className="entre">
+          <h2 className="sous-titre" style={{ margin: 0 }}>
+            Lignes {lignes ? `(${lignes.length})` : ''}
+          </h2>
+          {total > 0 && <span className="meta tnum">Valeur : {formaterEuros(total)}</span>}
+        </div>
 
         {lignes && lignes.length === 0 && (
           <p className="vide">Aucune ligne. Touchez + pour commencer la saisie.</p>
         )}
 
-        {lignes?.map((l) => (
-          <LigneItem key={l.id} ligne={l} />
+        {lignes?.map((l, i) => (
+          <LigneItem
+            key={l.id}
+            ligne={l}
+            ouvertInitial={l.id === ligneCiblee}
+            peutMonter={i > 0}
+            peutDescendre={i < lignes.length - 1}
+          />
         ))}
       </div>
 

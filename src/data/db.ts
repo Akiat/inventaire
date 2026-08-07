@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie'
-import type { Logement, Constat, Piece, Ligne, Photo } from './types'
+import type { Logement, Constat, Piece, Ligne, Photo, Modele } from './types'
 
 export class InventaireDB extends Dexie {
   logements!: Table<Logement, string>
@@ -7,6 +7,7 @@ export class InventaireDB extends Dexie {
   pieces!: Table<Piece, string>
   lignes!: Table<Ligne, string>
   photos!: Table<Photo, string>
+  modeles!: Table<Modele, string>
 
   constructor() {
     super('inventaire')
@@ -17,6 +18,11 @@ export class InventaireDB extends Dexie {
       pieces: 'id, constatId, ordre',
       lignes: 'id, pieceId, ordre',
       photos: 'id, ligneId, pieceId, constatId, createdAt',
+    })
+    // v2 (lot 2) : ajoute les modèles réutilisables. Les autres tables sont
+    // héritées de la v1 sans migration.
+    this.version(2).stores({
+      modeles: 'id, createdAt',
     })
   }
 }
