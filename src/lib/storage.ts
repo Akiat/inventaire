@@ -14,6 +14,14 @@ export async function demanderPersistance(): Promise<boolean> {
   return false
 }
 
+export async function estPersistant(): Promise<boolean> {
+  try {
+    return (await navigator.storage?.persisted?.()) ?? false
+  } catch {
+    return false
+  }
+}
+
 export async function estimationStockage(): Promise<{ usage: number; quota: number } | null> {
   try {
     if (navigator.storage && navigator.storage.estimate) {

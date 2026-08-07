@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../data/db'
@@ -10,6 +10,11 @@ import {
   supprimerModele,
 } from '../data/actions'
 import { exporterSauvegarde, importerSauvegarde } from '../lib/backup'
+import { demanderPersistance, estimationStockage, estPersistant } from '../lib/storage'
+
+function formaterMo(octets: number): string {
+  return `${(octets / (1024 * 1024)).toFixed(octets < 10 * 1024 * 1024 ? 1 : 0)} Mo`
+}
 
 function formaterDate(iso: string): string {
   const d = new Date(iso + 'T00:00:00')
@@ -21,6 +26,24 @@ export function Accueil() {
   const nav = useNavigate()
   const inputImport = useRef<HTMLInputElement>(null)
   const [msg, setMsg] = useState<string>()
+  const [stockage, setStockage] = useState<{ usage: number; quota: number } | null>(null)
+  const [persistant, setPersistant] = useState<boolean | null>(null)
+
+  const photos = useLiveQuery(() => db.photos.count(), [])
+
+  async function rafraichirStockage() {
+    setStockage(await estimationStockage())
+    setPersistant(await estPersistant())
+  }
+  // Recalcule à l'ouverture et quand le nombre de photos change.
+  useEffect(() => {
+    rafraichirStockage()
+  }, [photos])
+
+  async function protegerStockage() {
+    await demanderPersistance()
+    await rafraichirStockage()
+  }
 
   const constats = useLiveQuery(() => db.constats.orderBy('createdAt').reverse().toArray(), [])
   const logements = useLiveQuery(() => db.logements.toArray(), [])
@@ -95,6 +118,39 @@ export function Accueil() {
           />
           {msg && <p className="meta">{msg}</p>}
         </div>
+
+        {/* Stockage : espace utilisé et protection contre l'éviction. */}
+        {stockage && (
+          <div className="carte" style={{ marginBottom: 20 }}>
+            <div className="entre">
+              <span className="titre-carte" style={{ fontSize: '0.95rem' }}>
+                Stockage
+              </span>
+              <span className="meta tnum">
+                {formaterMo(stockage.usage)}
+                {stockage.quota ? ` / ${formaterMo(stockage.quota)}` : ''}
+              </span>
+            </div>
+            {stockage.quota > 0 && (
+              <div
+                className="avancement"
+                aria-label={`${Math.round((stockage.usage / stockage.quota) * 100)}% utilisé`}
+              >
+                <span style={{ width: `${Math.min(100, (stockage.usage / stockage.quota) * 100)}%` }} />
+              </div>
+            )}
+            <p className="meta" style={{ marginTop: 8 }}>
+              {persistant
+                ? '✓ Stockage persistant : protégé contre l’effacement automatique.'
+                : 'Stockage non persistant : le navigateur peut l’effacer. Exportez régulièrement.'}
+            </p>
+            {persistant === false && (
+              <button className="btn pleine" style={{ marginTop: 4 }} onClick={protegerStockage}>
+                Protéger le stockage
+              </button>
+            )}
+          </div>
+        )}
 
         {modeles && modeles.length > 0 && (
           <>
