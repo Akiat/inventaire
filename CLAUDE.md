@@ -1,6 +1,8 @@
 # Conventions du projet
 
 Lire `PLAN.md` avant toute chose. Il fait autorité sur le périmètre.
+Lire ensuite `ETAT.md` : état d'avancement, architecture, décisions et pièges
+(document de reprise pour une nouvelle session).
 
 ## Règles
 
