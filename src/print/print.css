@@ -1,0 +1,186 @@
+/* Feuille d'impression, isolée du reste. Tout est scopé sous .impr. */
+
+.impr {
+  background: #fff;
+  color: #000;
+  max-width: 210mm;
+  margin: 0 auto;
+  padding: 16px;
+  font-size: 11pt;
+  line-height: 1.35;
+}
+
+.impr .barre-outils {
+  position: sticky;
+  top: 0;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 0;
+  background: #fff;
+  border-bottom: 1px solid #ccc;
+  margin-bottom: 16px;
+}
+
+.impr h1 {
+  font-size: 18pt;
+  margin: 0 0 4px;
+}
+
+.impr h2 {
+  font-size: 13pt;
+  margin: 18px 0 6px;
+  border-bottom: 2px solid #000;
+  padding-bottom: 3px;
+}
+
+.impr .doc-entete {
+  margin-bottom: 12px;
+}
+
+.impr .infos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 24px;
+}
+
+.impr .infos .cle {
+  font-weight: 700;
+}
+
+.impr table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 6px 0 12px;
+  font-size: 10.5pt;
+}
+
+.impr th,
+.impr td {
+  border: 1px solid #999;
+  padding: 5px 7px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.impr th {
+  background: #eee;
+  font-size: 9.5pt;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.impr td.qte,
+.impr td.etat,
+.impr td.refs {
+  white-space: nowrap;
+}
+
+.impr .tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Blocs de signature */
+.impr .signatures {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.impr .cadre-signature {
+  border: 1px solid #000;
+  height: 110px;
+  padding: 6px;
+  font-size: 9.5pt;
+}
+
+/* Annexe photos : grille 2 × 3 par page */
+.impr .annexe-grille {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.impr .photo-bloc {
+  border: 1px solid #999;
+  padding: 6px;
+}
+
+.impr .photo-bloc img {
+  width: 100%;
+  height: 78mm;
+  object-fit: contain;
+  background: #f2f2f2;
+  display: block;
+}
+
+.impr .photo-bloc .legende {
+  font-size: 9pt;
+  margin-top: 4px;
+}
+
+.impr .photo-bloc .ref {
+  font-weight: 700;
+}
+
+.impr .avert {
+  border: 1.5px solid #b47712;
+  background: #fbf3e2;
+  padding: 8px 10px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  font-size: 10pt;
+}
+
+@media screen {
+  .impr {
+    box-shadow: 0 0 0 1px #ddd;
+    margin: 16px auto;
+  }
+}
+
+@media print {
+  /* Format A4, marges 15 mm, numérotation Page X / Y via compteurs CSS. */
+  @page {
+    size: A4 portrait;
+    margin: 15mm;
+    @bottom-center {
+      content: 'Page ' counter(page) ' / ' counter(pages);
+      font-size: 9pt;
+      color: #444;
+    }
+  }
+
+  html,
+  body {
+    background: #fff;
+  }
+
+  .impr {
+    box-shadow: none;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    font-size: 10.5pt;
+  }
+
+  .impr .barre-outils {
+    display: none !important;
+  }
+
+  /* Éviter les coupures au milieu des lignes et des blocs photo. */
+  .impr tr,
+  .impr .photo-bloc,
+  .impr .cadre-signature {
+    break-inside: avoid;
+  }
+
+  .impr h2 {
+    break-after: avoid;
+  }
+
+  .impr .annexe {
+    break-before: page;
+  }
+}
