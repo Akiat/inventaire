@@ -3,7 +3,11 @@
 // navigation (pour récupérer les mises à jour) avec repli sur le cache, et
 // cache-first pour les assets fingerprintés (immuables).
 
-const CACHE = 'inventaire-v1'
+// BUILD est remplacé au build par le SHA du commit (scripts/stamp-sw.mjs).
+// Il fait changer les octets de ce fichier à chaque déploiement, condition pour
+// que le navigateur détecte une mise à jour du service worker.
+const BUILD = '__BUILD__'
+const CACHE = 'inventaire-' + BUILD
 const SHELL = ['./', './index.html', './manifest.json', './icon.svg']
 
 self.addEventListener('install', (event) => {
