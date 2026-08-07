@@ -97,6 +97,8 @@ button {
   border-radius: var(--r);
   border: 1px solid var(--rule);
   background: var(--surface);
+  color: var(--ink);
+  text-decoration: none;
   font-weight: 600;
   display: inline-flex;
   align-items: center;

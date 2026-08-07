@@ -51,24 +51,25 @@ export function Pieces() {
         }
       />
       <div className="contenu">
-        <div className="entre">
-          <Link className="lien" to={`/constat/${constatId}`}>
-            ✎ En-tête du constat
+        <div className="ligne-champs">
+          <Link className="btn" to={`/constat/${constatId}`}>
+            ✎ En-tête
           </Link>
+          <Link className="btn" to={`/constat/${constatId}/conformite`}>
+            ✓ Conformité
+          </Link>
+        </div>
+        <div className="entre" style={{ marginTop: 14 }}>
+          <h2 className="sous-titre" style={{ margin: 0 }}>
+            Pièces
+          </h2>
           <span className="meta tnum">
             {commencees}/{total} pièces
           </span>
         </div>
-        <div className="entre" style={{ marginTop: 6 }}>
-          <Link className="lien" to={`/constat/${constatId}/conformite`}>
-            ✓ Conformité
-          </Link>
-        </div>
-        <div className="avancement" aria-label={`Avancement ${pct}%`}>
+        <div className="avancement" aria-label={`Avancement ${pct}%`} style={{ marginBottom: 14 }}>
           <span style={{ width: `${pct}%` }} />
         </div>
-
-        <h2 className="sous-titre">Pièces</h2>
 
         {total === 0 && <p className="vide">Aucune pièce. Touchez + pour en ajouter une.</p>}
 
