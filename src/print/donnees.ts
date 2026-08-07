@@ -20,6 +20,7 @@ export interface PhotoNumerotee {
 export interface LigneImpression {
   ligne: Ligne
   refsPhotos: string[]
+  photos: Photo[] // pour le mode « vignettes dans les tableaux »
 }
 
 export interface PieceImpression {
@@ -83,6 +84,7 @@ export async function chargerImpression(constatId: string, doc: DocType): Promis
   let compteur = 0
   const annexeGlobale: AnnexeGlobale[] = []
   const refsParLigne = new Map<string, string[]>()
+  const photosParLigne = new Map<string, Photo[]>()
   const lignesParPiece = new Map<string, Ligne[]>()
 
   for (const piece of pieces) {
@@ -106,6 +108,7 @@ export async function chargerImpression(constatId: string, doc: DocType): Promis
         })
       }
       refsParLigne.set(ligne.id, refs)
+      photosParLigne.set(ligne.id, photos)
     }
   }
 
@@ -136,7 +139,11 @@ export async function chargerImpression(constatId: string, doc: DocType): Promis
     if (lignes.length === 0) continue // pièce sans ligne pour ce document : omise
     piecesImpr.push({
       piece,
-      lignes: lignes.map((ligne) => ({ ligne, refsPhotos: refsParLigne.get(ligne.id) ?? [] })),
+      lignes: lignes.map((ligne) => ({
+        ligne,
+        refsPhotos: refsParLigne.get(ligne.id) ?? [],
+        photos: photosParLigne.get(ligne.id) ?? [],
+      })),
     })
     for (const ligne of lignes) lignesPieceDoc.push({ ligne, piece })
   }

@@ -133,6 +133,71 @@
   font-size: 10pt;
 }
 
+/* Sélecteur de mode photos dans la barre d'outils (écran seulement) */
+.impr .outil-photos {
+  width: 280px;
+  flex: none;
+}
+
+/* Page de garde */
+.impr .page-garde {
+  margin-bottom: 16px;
+}
+
+.impr .page-garde h1 {
+  font-size: 20pt;
+  margin: 0 0 14px;
+}
+
+.impr .sommaire {
+  margin-top: 20px;
+}
+
+.impr .sommaire ol {
+  margin: 6px 0 0;
+  padding-left: 22px;
+}
+
+.impr .sommaire li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 0;
+  border-bottom: 1px dotted #bbb;
+}
+
+.impr .sommaire li .tnum {
+  color: #555;
+  font-size: 9.5pt;
+  white-space: nowrap;
+}
+
+/* Vignettes photos dans les tableaux */
+.impr .cellule-vignettes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.impr .mini-photo {
+  width: 46px;
+  height: 46px;
+  object-fit: cover;
+  border: 1px solid #999;
+}
+
+/* Pied de paraphe : masqué à l'écran, répété à chaque page à l'impression */
+.impr .pied-paraphe {
+  display: none;
+}
+
+.impr .pied-paraphe .trait {
+  display: inline-block;
+  width: 90px;
+  border-bottom: 1px solid #333;
+  margin: 0 14px 0 4px;
+}
+
 @media screen {
   .impr {
     box-shadow: 0 0 0 1px #ddd;
@@ -141,11 +206,12 @@
 }
 
 @media print {
-  /* Format A4, marges 15 mm, numérotation Page X / Y via compteurs CSS. */
+  /* Format A4, marges 15 mm ; marge basse élargie pour loger le pied de
+     paraphe fixe. Numérotation Page X / Y via compteurs CSS. */
   @page {
     size: A4 portrait;
-    margin: 15mm;
-    @bottom-center {
+    margin: 15mm 15mm 22mm;
+    @bottom-right {
       content: 'Page ' counter(page) ' / ' counter(pages);
       font-size: 9pt;
       color: #444;
@@ -180,7 +246,24 @@
     break-after: avoid;
   }
 
+  /* La page de garde occupe sa propre page. */
+  .impr .page-garde {
+    break-after: page;
+  }
+
   .impr .annexe {
     break-before: page;
+  }
+
+  /* Pied de paraphe répété à chaque page (position fixe = tous les feuillets). */
+  .impr .pied-paraphe {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 6mm;
+    font-size: 8.5pt;
+    color: #333;
+    text-align: right;
   }
 }
