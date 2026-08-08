@@ -77,9 +77,14 @@
 }
 
 .impr td.qte,
-.impr td.etat,
-.impr td.refs {
+.impr td.etat {
   white-space: nowrap;
+}
+
+/* La colonne Photos peut contenir une longue liste de références : elle doit
+   revenir à la ligne plutôt que déborder de la page. */
+.impr td.refs {
+  overflow-wrap: anywhere;
 }
 
 .impr .tnum {
@@ -113,9 +118,12 @@
   padding: 6px;
 }
 
+/* Photo affichée en entier (jamais rognée) : largeur pleine, hauteur naturelle,
+   plafonnée pour garder ~6 photos réparties sur la page. */
 .impr .photo-bloc img {
   width: 100%;
-  height: 78mm;
+  height: auto;
+  max-height: 88mm;
   object-fit: contain;
   background: #f2f2f2;
   display: block;
@@ -188,7 +196,8 @@
 .impr .mini-photo {
   width: 46px;
   height: 46px;
-  object-fit: cover;
+  object-fit: contain;
+  background: #f2f2f2;
   border: 1px solid #999;
 }
 
@@ -243,18 +252,6 @@
   color: #999;
 }
 
-/* Pied de paraphe : masqué à l'écran, répété à chaque page à l'impression */
-.impr .pied-paraphe {
-  display: none;
-}
-
-.impr .pied-paraphe .trait {
-  display: inline-block;
-  width: 90px;
-  border-bottom: 1px solid #333;
-  margin: 0 14px 0 4px;
-}
-
 @media screen {
   .impr {
     box-shadow: 0 0 0 1px #ddd;
@@ -285,7 +282,15 @@
      paraphe fixe. Numérotation Page X / Y via compteurs CSS. */
   @page {
     size: A4 portrait;
-    margin: 15mm 15mm 22mm;
+    margin: 15mm 15mm 20mm;
+    /* Emplacement de paraphe et numéro de page dans la marge basse : boîtes de
+       marge @page (mécanisme dédié au bandeau répété), plus fiable et sans
+       chevauchement du contenu qu'un pied `position: fixed`. */
+    @bottom-left {
+      content: 'Paraphes — Bailleur : ______________    Locataire(s) : ______________';
+      font-size: 8pt;
+      color: #333;
+    }
     @bottom-right {
       content: 'Page ' counter(page) ' / ' counter(pages);
       font-size: 9pt;
@@ -328,17 +333,5 @@
 
   .impr .annexe {
     break-before: page;
-  }
-
-  /* Pied de paraphe répété à chaque page (position fixe = tous les feuillets). */
-  .impr .pied-paraphe {
-    display: block;
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 6mm;
-    font-size: 8.5pt;
-    color: #333;
-    text-align: right;
   }
 }

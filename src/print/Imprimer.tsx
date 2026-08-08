@@ -395,11 +395,7 @@ export function Imprimer() {
           </div>
         </section>
       )}
-
-      {/* Pied de paraphe, répété à chaque page à l'impression. */}
-      <div className="pied-paraphe">
-        Paraphes — Bailleur : <span className="trait" /> Locataire(s) : <span className="trait" />
-      </div>
+      {/* Le pied de paraphe est rendu par la boîte de marge @page (print.css). */}
     </div>
   )
 }
