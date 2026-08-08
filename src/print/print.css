@@ -106,26 +106,33 @@
   font-size: 9.5pt;
 }
 
-/* Annexe photos : grille 2 × 3 par page */
+/* Annexe photos : deux colonnes en inline-block (pas de grille). À l'impression,
+   la pagination respecte mal « ne pas couper » dans une grille CSS ; en
+   inline-block, une rangée de photos est une ligne que le moteur ne scinde
+   jamais en deux — elle passe entière à la page suivante (blanc en bas) plutôt
+   que d'être coupée. */
 .impr .annexe-grille {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  line-height: 0; /* neutralise l'espace entre lignes de blocs */
 }
 
 .impr .photo-bloc {
-  border: 1px solid #999;
-  padding: 6px;
+  display: inline-block;
+  width: 50%;
+  vertical-align: top;
+  box-sizing: border-box;
+  padding: 5px;
+  line-height: 1.35;
 }
 
 /* Photo affichée en entier (jamais rognée) : largeur pleine, hauteur naturelle,
-   plafonnée pour garder ~6 photos réparties sur la page. */
+   plafonnée pour garder plusieurs photos par page. */
 .impr .photo-bloc img {
   width: 100%;
   height: auto;
   max-height: 88mm;
   object-fit: contain;
   background: #f2f2f2;
+  border: 1px solid #999;
   display: block;
 }
 
@@ -278,19 +285,13 @@
 }
 
 @media print {
-  /* Format A4, marges 15 mm ; marge basse élargie pour loger le pied de
-     paraphe fixe. Numérotation Page X / Y via compteurs CSS. */
+  /* Format A4, marges 15 mm. Numéro de page « Page X / Y » via compteurs CSS
+     (rendu selon le moteur d'impression). Pas de paraphe page-par-page : les
+     boîtes de marge @page ne sont pas rendues par tous les moteurs (Safari), et
+     la signature électronique scelle déjà le document entier. */
   @page {
     size: A4 portrait;
-    margin: 15mm 15mm 20mm;
-    /* Emplacement de paraphe et numéro de page dans la marge basse : boîtes de
-       marge @page (mécanisme dédié au bandeau répété), plus fiable et sans
-       chevauchement du contenu qu'un pied `position: fixed`. */
-    @bottom-left {
-      content: 'Paraphes — Bailleur : ______________    Locataire(s) : ______________';
-      font-size: 8pt;
-      color: #333;
-    }
+    margin: 15mm;
     @bottom-right {
       content: 'Page ' counter(page) ' / ' counter(pages);
       font-size: 9pt;
@@ -315,11 +316,13 @@
     display: none !important;
   }
 
-  /* Éviter les coupures au milieu des lignes et des blocs photo. */
+  /* Éviter les coupures au milieu des lignes et des blocs photo. L'alias
+     page-break-inside couvre les moteurs WebKit qui ignorent break-inside. */
   .impr tr,
   .impr .photo-bloc,
   .impr .cadre-signature {
     break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   .impr h2 {
