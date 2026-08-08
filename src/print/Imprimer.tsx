@@ -374,7 +374,7 @@ export function Imprimer() {
         <div className="cadre-signature">Le(s) locataire(s)</div>
       </div>
       <p className="meta" style={{ fontSize: '9pt', color: '#444', marginTop: 8 }}>
-        Document non signé, à faire signer via l'outil de signature électronique.
+        Signature des parties par voie électronique.
         {!estSortie && avecAnnexe && nbPhotos > 0 ? ` ${nbPhotos} photo(s) annexée(s).` : ''}
         {estSortie ? " Les lignes modifiées par rapport à l'entrée sont surlignées." : ''}
       </p>
