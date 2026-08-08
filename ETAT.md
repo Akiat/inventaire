@@ -86,7 +86,7 @@ catégorie), surchargeable. Détail dans `PLAN.md` (section « ÉVOLUTION »).
   réordonnancement, clonage sortie, conformité, modèles, photos de ligne / pièce
   / compteur). Les lectures+écritures d'`ordre` passent par des transactions
   (anti-course sur ajout en rafale). `etatLibelle` y traduit les états.
-- `lib/` — `images.ts` (redim 1600px/JPEG 0.8, gestion HEIC), `backup.ts`
+- `lib/` — `images.ts` (redim 2048px/JPEG 0.85, gestion HEIC), `backup.ts`
   (ZIP + JSON), `zip.ts` (ZIP maison), `storage.ts` (persist + estimate),
   `valeur.ts`, `hooks.ts` (useBlobUrl, debounce), `catalogueLocal.ts`.
 - `screens/` — Accueil, EnTeteConstat, Pieces, Piece, Conformite, Documents.

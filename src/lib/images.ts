@@ -1,11 +1,13 @@
 // Redimensionnement et réencodage des photos avant stockage.
-// Une photo iPhone brute pèse ~3 Mo ; on ramène à 1600 px de large max en
-// JPEG 0.8. L'input `capture` renvoie souvent du HEIC : createImageBitmap le
-// décode sur iOS. Si le décodage échoue, on lève une erreur claire plutôt que
-// de perdre la photo silencieusement.
+// Une photo iPhone brute pèse ~3 Mo ; on ramène à 2048 px de large max en
+// JPEG 0.85 — bon compromis netteté / stockage (iOS peut évincer IndexedDB).
+// Ne s'applique qu'aux nouvelles photos : les blobs déjà stockés sont inchangés.
+// L'input `capture` renvoie souvent du HEIC : createImageBitmap le décode sur
+// iOS. Si le décodage échoue, on lève une erreur claire plutôt que de perdre la
+// photo silencieusement.
 
-const LARGEUR_MAX = 1600
-const QUALITE = 0.8
+const LARGEUR_MAX = 2048
+const QUALITE = 0.85
 
 export async function preparerPhoto(fichier: File): Promise<Blob> {
   let bitmap: ImageBitmap

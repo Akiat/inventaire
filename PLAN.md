@@ -87,9 +87,9 @@ Photo      { id, ligneId?, pieceId?, constatId?, blob, createdAt }
 - **Quantité** : stepper `− n +`, apparaît au dépli.
 - **Photo** : `<input type="file" accept="image/*" capture="environment" multiple>`
   — surtout **pas** `getUserMedia`, qui exige HTTPS et une UI de capture à écrire.
-  L'input ouvre l'appareil natif. Redimensionner à 1600 px de large max et
-  réencoder en JPEG qualité 0.8 via canvas avant stockage (une photo iPhone brute
-  fait 3 Mo, ça sature IndexedDB en 200 photos).
+  L'input ouvre l'appareil natif. Redimensionner à 2048 px de large max et
+  réencoder en JPEG qualité 0.85 via canvas avant stockage (une photo iPhone brute
+  fait 3 Mo, ça sature IndexedDB — garder un œil sur le quota).
 - **Observations** : `<textarea>`. La dictée du clavier iOS suffit, ne rien coder.
 - **Dupliquer la ligne** et **Supprimer** dans le dépli.
 - Sauvegarde à chaque frappe (debounce 300 ms). Aucun bouton « Enregistrer » nulle
