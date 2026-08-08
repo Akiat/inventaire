@@ -44,6 +44,26 @@ export function Imprimer() {
     }
   }, [constatId, typeDoc])
 
+  // Nom du fichier à l'export PDF : le navigateur reprend document.title. On le
+  // rend distinct par document (EDL ≠ inventaire) puis on restaure celui de l'app.
+  useEffect(() => {
+    if (!data) return
+    const { constat: c, logement: l } = data
+    const nom = [
+      typeDoc === 'edl' ? 'État des lieux' : 'Inventaire mobilier',
+      c.type === 'entree' ? 'entrée' : 'sortie',
+      l?.adresse?.trim().replace(/[\\/:*?"<>|]+/g, ' ').trim() || null,
+      c.date, // yyyy-mm-dd, sans slash → nom de fichier propre
+    ]
+      .filter(Boolean)
+      .join(' — ')
+    const precedent = document.title
+    document.title = nom
+    return () => {
+      document.title = precedent
+    }
+  }, [data, typeDoc])
+
   function choisirMode(m: ModePhotos) {
     setMode(m)
     localStorage.setItem(CLE_MODE, m)
