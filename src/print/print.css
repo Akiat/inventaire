@@ -122,6 +122,13 @@
   box-sizing: border-box;
   padding: 5px;
   line-height: 1.35;
+  scroll-margin-top: 64px; /* cible d'ancrage non masquée par la barre d'outils */
+}
+
+/* Vignette cliquable vers l'annexe : lien sans décoration autour de l'image. */
+.impr .lien-vignette {
+  display: inline-block;
+  line-height: 0;
 }
 
 /* Photo affichée en entier (jamais rognée) : largeur pleine, hauteur naturelle,

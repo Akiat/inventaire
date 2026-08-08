@@ -27,6 +27,26 @@ function MiniPhoto({ photo }: { photo: Photo }) {
   return url ? <img className="mini-photo" src={url} alt="" /> : null
 }
 
+// Vignette, cliquable vers sa photo en annexe si une ancre est fournie (mode
+// « les deux »). Le href produit le lien interne dans le PDF (Chrome) ; à
+// l'écran on gère le défilement à la main car HashRouter détournerait le hash.
+function Vignette({ photo, ancre }: { photo: Photo; ancre?: string }) {
+  if (!ancre) return <MiniPhoto photo={photo} />
+  const cible = `photo-${ancre}`
+  return (
+    <a
+      className="lien-vignette"
+      href={`#${cible}`}
+      onClick={(e) => {
+        e.preventDefault()
+        document.getElementById(cible)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }}
+    >
+      <MiniPhoto photo={photo} />
+    </a>
+  )
+}
+
 export function Imprimer() {
   const { constatId = '', doc = 'edl' } = useParams()
   const typeDoc: DocType = doc === 'inventaire' ? 'inventaire' : 'edl'
@@ -238,8 +258,12 @@ export function Imprimer() {
             <div className="photos-piece">
               {vignettes || estSortie ? (
                 <div className="cellule-vignettes">
-                  {photosPiece.map((p) => (
-                    <MiniPhoto key={p.id} photo={p} />
+                  {photosPiece.map((p, i) => (
+                    <Vignette
+                      key={p.id}
+                      photo={p}
+                      ancre={avecAnnexe && !estSortie ? refsPhotosPiece[i] : undefined}
+                    />
                   ))}
                 </div>
               ) : (
@@ -309,8 +333,12 @@ export function Imprimer() {
                     <td className="refs">
                       {vignettes ? (
                         <div className="cellule-vignettes">
-                          {photos.map((p) => (
-                            <MiniPhoto key={p.id} photo={p} />
+                          {photos.map((p, i) => (
+                            <Vignette
+                              key={p.id}
+                              photo={p}
+                              ancre={avecAnnexe ? refsPhotos[i] : undefined}
+                            />
                           ))}
                         </div>
                       ) : (
@@ -405,7 +433,7 @@ export function Imprimer() {
           <h2>Annexe photographique</h2>
           <div className="annexe-grille">
             {annexe.map((a) => (
-              <div className="photo-bloc" key={a.ref}>
+              <div className="photo-bloc" id={`photo-${a.ref}`} key={a.ref}>
                 <PhotoImg photo={a.photo} />
                 <div className="legende">
                   <span className="ref">{a.ref}</span> — {a.legende}
