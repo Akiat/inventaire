@@ -62,10 +62,6 @@ function formaterDate(iso: string): string {
   return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-function formaterDateMs(ms: number): string {
-  return new Date(ms).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-}
-
 function ref(n: number): string {
   return `P-${String(n).padStart(3, '0')}`
 }
@@ -93,6 +89,9 @@ export async function chargerImpression(constatId: string, doc: DocType): Promis
   if (!constat) return null
   const logement = await db.logements.get(constat.logementId)
   const pieces = await db.pieces.where('constatId').equals(constatId).sortBy('ordre')
+  // Date affichée dans les légendes de l'annexe : celle du constat (les photos
+  // sont prises pendant l'état des lieux), pas l'horodatage de capture.
+  const dateConstat = formaterDate(constat.date)
 
   // 1) Numérotation GLOBALE de toutes les photos (indépendante du document).
   let compteur = 0
@@ -118,7 +117,7 @@ export async function chargerImpression(constatId: string, doc: DocType): Promis
         annexeGlobale.push({
           photo,
           ref: r,
-          legende: `${piece.nom} — ${ligne.designation} — ${formaterDateMs(photo.createdAt)}`,
+          legende: `${piece.nom} — ${ligne.designation} — ${dateConstat}`,
           ligneId: ligne.id,
           estCompteur: false,
         })
@@ -138,7 +137,7 @@ export async function chargerImpression(constatId: string, doc: DocType): Promis
       annexeGlobale.push({
         photo,
         ref: r,
-        legende: `${piece.nom} — vue d'ensemble — ${formaterDateMs(photo.createdAt)}`,
+        legende: `${piece.nom} — vue d'ensemble — ${dateConstat}`,
         pieceId: piece.id,
         estCompteur: false,
       })
@@ -159,7 +158,7 @@ export async function chargerImpression(constatId: string, doc: DocType): Promis
       annexeGlobale.push({
         photo,
         ref: r,
-        legende: `Compteur ${c.type || '—'} — index ${c.index || '—'} — ${formaterDateMs(photo.createdAt)}`,
+        legende: `Compteur ${c.type || '—'} — index ${c.index || '—'} — ${dateConstat}`,
         estCompteur: true,
       })
     }
