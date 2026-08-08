@@ -177,6 +177,16 @@
   margin: 0 0 14px;
 }
 
+/* Remarques (texte libre) sur la page de garde. */
+.impr .remarques-doc {
+  margin-top: 20px;
+}
+
+.impr .remarques-doc p {
+  margin: 6px 0 0;
+  white-space: pre-wrap; /* conserve les retours à la ligne saisis */
+}
+
 .impr .sommaire {
   margin-top: 20px;
 }

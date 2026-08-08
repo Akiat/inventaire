@@ -72,6 +72,10 @@ export interface Constat {
   compteurs: Compteur[]
   cles: Cle[]
   createdAt: number
+  // Texte libre ajouté au(x) document(s) (observations générales), avec sa
+  // destination (défaut 'les_deux'). Absents sur les anciens constats.
+  remarques?: string
+  remarquesDestination?: Destination
   // Ajouté au lot 1. Absent sur les constats créés au lot 0 (traité comme {}).
   conformite?: Record<string, SurchargeMobilier>
   // Lot 4 — constat de sortie :

@@ -5,6 +5,7 @@ import { db } from '../data/db'
 import type { Cle, Compteur, Constat, Logement, TypeConstat } from '../data/types'
 import { BarreTitre } from '../components/BarreTitre'
 import { ChampPhoto } from '../components/ChampPhoto'
+import { SelecteurDestination } from '../components/SelecteurDestination'
 import { ajouterPhotoCompteur, supprimerPhoto } from '../data/actions'
 import { useDebouncedCallback } from '../lib/hooks'
 
@@ -38,6 +39,7 @@ export function EnTeteConstat() {
       <div className="contenu">
         <FormConstat constat={constat} />
         {logement && <FormLogement logement={logement} />}
+        <FormRemarques constat={constat} />
         <FormCompteurs constat={constat} />
         <FormCles constat={constat} />
       </div>
@@ -174,6 +176,45 @@ function FormConstat({ constat }: { constat: Constat }) {
             />
           </label>
         </>
+      )}
+    </section>
+  )
+}
+
+// --- Remarques : texte libre ajouté au(x) document(s) ---
+function FormRemarques({ constat }: { constat: Constat }) {
+  const [texte, setTexte] = useState(constat.remarques ?? '')
+  useEffect(() => setTexte(constat.remarques ?? ''), [constat.id])
+
+  const ecrire = useDebouncedCallback((v: string) => {
+    db.constats.update(constat.id, { remarques: v })
+  }, 300)
+
+  return (
+    <section>
+      <h2 className="sous-titre">Remarques</h2>
+      <label className="champ">
+        <span className="lib">Observations générales (facultatif)</span>
+        <textarea
+          value={texte}
+          rows={3}
+          placeholder="Texte libre ajouté au(x) document(s)…"
+          onChange={(e) => {
+            setTexte(e.target.value)
+            ecrire(e.target.value)
+          }}
+        />
+      </label>
+      {texte.trim() && (
+        <div style={{ marginTop: 4 }}>
+          <span className="lib" style={{ display: 'block', marginBottom: 6 }}>
+            Ce texte figure dans…
+          </span>
+          <SelecteurDestination
+            valeur={constat.remarquesDestination ?? 'les_deux'}
+            onChange={(d) => db.constats.update(constat.id, { remarquesDestination: d })}
+          />
+        </div>
       )}
     </section>
   )

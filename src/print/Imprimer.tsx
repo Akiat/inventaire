@@ -97,7 +97,7 @@ export function Imprimer() {
       </div>
     )
 
-  const { constat, estSortie, logement, pieces, compteurs, cles, annexe, nbPhotos, mobilier, avertissements, valeurs, valeurGlobale } =
+  const { constat, estSortie, logement, remarques, pieces, compteurs, cles, annexe, nbPhotos, mobilier, avertissements, valeurs, valeurGlobale } =
     data
   const estEdl = typeDoc === 'edl'
   const typeLabel = constat.type === 'entree' ? "d'entrée" : 'de sortie'
@@ -181,6 +181,13 @@ export function Imprimer() {
             </>
           ) : null}
         </div>
+
+        {remarques && (
+          <div className="remarques-doc">
+            <h2>Remarques</h2>
+            <p>{remarques}</p>
+          </div>
+        )}
 
         {pieces.length > 0 && (
           <div className="sommaire">

@@ -45,6 +45,7 @@ export interface DonneesImpression {
   estSortie: boolean
   constat: Constat
   logement: Logement | undefined
+  remarques: string // texte libre, si présent et destiné à ce document
   pieces: PieceImpression[]
   compteurs: { type: string; numero: string; index: string; ref?: string }[]
   cles: Cle[]
@@ -92,6 +93,13 @@ export async function chargerImpression(constatId: string, doc: DocType): Promis
   // Date affichée dans les légendes de l'annexe : celle du constat (les photos
   // sont prises pendant l'état des lieux), pas l'horodatage de capture.
   const dateConstat = formaterDate(constat.date)
+  // Remarques : incluses seulement si leur destination couvre ce document.
+  const remarquesDest = constat.remarquesDestination ?? 'les_deux'
+  const remarques =
+    constat.remarques?.trim() &&
+    (doc === 'edl' ? inclutEdl(remarquesDest) : inclutInventaire(remarquesDest))
+      ? constat.remarques.trim()
+      : ''
 
   // 1) Numérotation GLOBALE de toutes les photos (indépendante du document).
   let compteur = 0
@@ -247,6 +255,7 @@ export async function chargerImpression(constatId: string, doc: DocType): Promis
     estSortie,
     constat,
     logement,
+    remarques,
     pieces: piecesImpr,
     compteurs,
     cles: constat.cles,
